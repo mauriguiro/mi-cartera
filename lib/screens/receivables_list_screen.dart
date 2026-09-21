@@ -39,36 +39,54 @@ class ReceivablesListScreen extends StatelessWidget {
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   clipBehavior: Clip.antiAlias,
-                  child: ExpansionTile(
-                    title: Row(
-                      children: [
-                        Expanded(child: Text(receivable.debtor, style: textStyle)),
-                        Text(
-                          formatCurrency(receivable.amount),
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDone ? Colors.grey : Theme.of(context).colorScheme.secondary),
-                        ),
-                        Checkbox(
-                          value: receivable.isPaid,
-                          activeColor: Theme.of(context).colorScheme.secondary,
-                          checkColor: isDark ? Colors.white : Colors.black,
-                          onChanged: (val) {
-                            if (val != null) {
-                              context.read<FinanceProvider>().updateReceivable(
-                                Receivable(
-                                  id: receivable.id,
-                                  debtor: receivable.debtor,
-                                  amount: receivable.amount,
-                                  concept: receivable.concept,
-                                  dueDate: receivable.dueDate,
-                                  createdAt: receivable.createdAt,
-                                  isPaid: val,
-                                )
-                              );
-                            }
-                          },
-                        ),
-                      ],
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      dividerColor: Colors.transparent,
+                      listTileTheme: const ListTileThemeData(dense: true, minVerticalPadding: 0),
                     ),
+                    child: ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              receivable.debtor, 
+                              style: textStyle.copyWith(fontSize: 14), 
+                              maxLines: 1, 
+                              overflow: TextOverflow.ellipsis
+                            )
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            formatCurrency(receivable.amount),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDone ? Colors.grey : Theme.of(context).colorScheme.secondary),
+                          ),
+                          Transform.scale(
+                            scale: 0.9,
+                            child: Checkbox(
+                              value: receivable.isPaid,
+                              activeColor: Theme.of(context).colorScheme.secondary,
+                              checkColor: isDark ? Colors.white : Colors.black,
+                              visualDensity: VisualDensity.compact,
+                              onChanged: (val) {
+                                if (val != null) {
+                                  context.read<FinanceProvider>().updateReceivable(
+                                    Receivable(
+                                      id: receivable.id,
+                                      debtor: receivable.debtor,
+                                      amount: receivable.amount,
+                                      concept: receivable.concept,
+                                      dueDate: receivable.dueDate,
+                                      createdAt: receivable.createdAt,
+                                      isPaid: val,
+                                    )
+                                  );
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                     children: [
                       Builder(builder: (ctx) {
                         try {
