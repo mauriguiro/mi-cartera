@@ -129,8 +129,9 @@ class ReceivablesListScreen extends StatelessWidget {
                       }),
                     ],
                   ),
-                );
-              },
+                ),
+              );
+            },
             ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Theme.of(context).colorScheme.secondary,
