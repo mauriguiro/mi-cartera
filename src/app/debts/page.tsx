@@ -102,7 +102,7 @@ export default function DebtsPage() {
                                       
                                       {!debt.isFixed && (
                                         <>
-                                          <div className="h-px bg-gray-200 my-3" />
+                                          <div className="h-px bg-gray-700 my-3" />
                                           <p className="font-bold mb-2">Historial de Pagos:</p>
                                           {debt.payments.length === 0 ? (
                                             <p className="text-gray-500 text-xs italic">No hay pagos registrados aún.</p>
@@ -119,16 +119,16 @@ export default function DebtsPage() {
                                         </>
                                       )}
 
-                                      <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
+                                      <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-700">
                                         {!debt.isFixed && !debt.isPaid && (
-                                          <Link href={`/debts/${debt.id}/pay`} className="flex items-center text-blue-600 text-xs font-bold px-2 py-1 bg-blue-50 rounded hover:bg-blue-100">
+                                          <Link href={`/debts/${debt.id}/pay`} className="flex items-center text-blue-400 text-xs font-bold px-2 py-1 bg-blue-900/30 rounded hover:bg-blue-900/50">
                                             <CreditCard size={14} className="mr-1" /> Abonar
                                           </Link>
                                         )}
-                                        <Link href={`/debts/edit/${debt.id}`} className="text-orange-500 p-1 hover:bg-orange-50 rounded">
+                                        <Link href={`/debts/edit/${debt.id}`} className="text-orange-400 p-1 hover:bg-orange-900/30 rounded">
                                           <Edit size={16} />
                                         </Link>
-                                        <button onClick={() => deleteDebt(debt.id)} className="text-red-500 p-1 hover:bg-red-50 rounded">
+                                        <button onClick={() => deleteDebt(debt.id)} className="text-red-400 p-1 hover:bg-red-900/30 rounded">
                                           <Trash2 size={16} />
                                         </button>
                                       </div>
@@ -204,7 +204,7 @@ export default function DebtsPage() {
                                       
                                       {!debt.isFixed && (
                                         <>
-                                          <div className="h-px bg-gray-200 my-3" />
+                                          <div className="h-px bg-gray-700 my-3" />
                                           <p className="font-bold mb-2">Historial de Pagos:</p>
                                           {debt.payments.length === 0 ? (
                                             <p className="text-gray-500 text-xs italic">No hay pagos registrados aún.</p>
@@ -221,16 +221,16 @@ export default function DebtsPage() {
                                         </>
                                       )}
 
-                                      <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
+                                      <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-700">
                                         {!debt.isFixed && !debt.isPaid && (
-                                          <Link href={`/debts/${debt.id}/pay`} className="flex items-center text-blue-600 text-xs font-bold px-2 py-1 bg-blue-50 rounded hover:bg-blue-100">
+                                          <Link href={`/debts/${debt.id}/pay`} className="flex items-center text-blue-400 text-xs font-bold px-2 py-1 bg-blue-900/30 rounded hover:bg-blue-900/50">
                                             <CreditCard size={14} className="mr-1" /> Abonar
                                           </Link>
                                         )}
-                                        <Link href={`/debts/edit/${debt.id}`} className="text-orange-500 p-1 hover:bg-orange-50 rounded">
+                                        <Link href={`/debts/edit/${debt.id}`} className="text-orange-400 p-1 hover:bg-orange-900/30 rounded">
                                           <Edit size={16} />
                                         </Link>
-                                        <button onClick={() => deleteDebt(debt.id)} className="text-red-500 p-1 hover:bg-red-50 rounded">
+                                        <button onClick={() => deleteDebt(debt.id)} className="text-red-400 p-1 hover:bg-red-900/30 rounded">
                                           <Trash2 size={16} />
                                         </button>
                                       </div>

@@ -84,11 +84,11 @@ export default function ReceivablesPage() {
                                 <p className="text-gray-300 mb-1"><strong>Concepto:</strong> {rec.concept}</p>
                                 <p className="text-gray-300 mb-3"><strong>Creado el:</strong> {format(new Date(rec.createdAt), 'dd/MM/yyyy')}</p>
                                 
-                                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
-                                  <Link href={`/receivables/edit/${rec.id}`} className="text-orange-500 p-1 hover:bg-orange-50 rounded">
+                                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-700">
+                                  <Link href={`/receivables/edit/${rec.id}`} className="text-orange-400 p-1 hover:bg-orange-900/30 rounded">
                                     <Edit size={16} />
                                   </Link>
-                                  <button onClick={() => deleteReceivable(rec.id)} className="text-red-500 p-1 hover:bg-red-50 rounded">
+                                  <button onClick={() => deleteReceivable(rec.id)} className="text-red-400 p-1 hover:bg-red-900/30 rounded">
                                     <Trash2 size={16} />
                                   </button>
                                 </div>

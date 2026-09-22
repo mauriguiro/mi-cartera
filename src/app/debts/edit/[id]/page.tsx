@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-export default function AddDebtPage() {
-  const { addDebt } = useFinance();
+export default function EditDebtPage() {
+  const { debts, updateDebt } = useFinance();
   const router = useRouter();
+  const params = useParams();
+  const id = params.id as string;
 
   const [concept, setConcept] = useState('');
   const [creditor, setCreditor] = useState('');
@@ -16,16 +18,27 @@ export default function AddDebtPage() {
   const [isFixed, setIsFixed] = useState(false);
   const [dueDate, setDueDate] = useState('');
 
+  useEffect(() => {
+    const debt = debts.find(d => d.id === id);
+    if (debt) {
+      setConcept(debt.concept);
+      setCreditor(debt.creditor);
+      setAmount(debt.originalAmount.toString());
+      setIsFixed(debt.isFixed);
+      setDueDate(debt.dueDate?.split('T')[0] || '');
+    }
+  }, [id, debts]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!concept || !creditor || !amount) return;
 
-    addDebt({
+    updateDebt(id, {
       concept,
       creditor,
       originalAmount: parseFloat(amount),
       isFixed,
-      dueDate: dueDate || new Date().toISOString()
+      dueDate: dueDate ? new Date(dueDate).toISOString() : undefined
     });
     router.push('/debts');
   };
@@ -34,7 +47,7 @@ export default function AddDebtPage() {
     <div className="flex-1 w-full max-w-md mx-auto bg-gray-900 min-h-screen relative shadow-sm">
       <header className="bg-gray-800 text-white px-4 py-3 flex items-center shadow-sm border-b border-gray-700">
         <Link href="/debts" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
-        <h1 className="text-lg font-bold">Añadir Deuda</h1>
+        <h1 className="text-lg font-bold">Editar Deuda</h1>
       </header>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
@@ -62,7 +75,7 @@ export default function AddDebtPage() {
         )}
         
         <button type="submit" className="w-full bg-red-600 text-white font-bold py-3 rounded hover:bg-red-700 transition-colors mt-6">
-          Guardar Deuda
+          Guardar Cambios
         </button>
       </form>
     </div>
