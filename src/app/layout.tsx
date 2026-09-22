@@ -37,8 +37,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   registration.unregister();
                   console.log('Unregistered old service worker');
                 }
-                // Optionally reload once if a worker was unregistered
-                if (registrations.length > 0) {
+                if (registrations.length > 0 && !sessionStorage.getItem('sw_reloaded')) {
+                  sessionStorage.setItem('sw_reloaded', 'true');
                   window.location.reload();
                 }
               });
