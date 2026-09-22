@@ -23,9 +23,12 @@ class ReceivablesListScreen extends StatelessWidget {
       ),
       body: receivables.isEmpty
           ? const Center(child: Text('No tienes cuentas por cobrar.'))
-          : ListView.builder(
+          : ReorderableListView.builder(
               padding: const EdgeInsets.all(16.0),
               itemCount: receivables.length,
+              onReorder: (oldIndex, newIndex) {
+                context.read<FinanceProvider>().reorderReceivables(oldIndex, newIndex, List.from(receivables));
+              },
               itemBuilder: (ctx, i) {
                 final receivable = receivables[i];
                 final isDone = receivable.isPaid;
@@ -37,15 +40,20 @@ class ReceivablesListScreen extends StatelessWidget {
                 );
 
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
+                  key: Key(receivable.id),
+                  margin: const EdgeInsets.only(bottom: 2),
                   clipBehavior: Clip.antiAlias,
                   child: Theme(
                     data: Theme.of(context).copyWith(
                       dividerColor: Colors.transparent,
-                      listTileTheme: const ListTileThemeData(dense: true, minVerticalPadding: 0),
+                      listTileTheme: const ListTileThemeData(
+                        dense: true, 
+                        minVerticalPadding: 0,
+                        visualDensity: VisualDensity(vertical: -4, horizontal: 0),
+                      ),
                     ),
                     child: ExpansionTile(
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
                       title: Row(
                         children: [
                           Expanded(

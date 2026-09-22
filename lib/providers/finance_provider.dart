@@ -25,6 +25,7 @@ class FinanceProvider with ChangeNotifier {
     // Escuchar Deudas
     FirebaseFirestore.instance.collection('debts').snapshots().listen((snapshot) {
       _debts = snapshot.docs.map((doc) => Debt.fromMap(doc.data(), doc.id)).toList();
+      _debts.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
       _checkMonthlyReset(); // Verificar reinicio mensual cada vez que llegan datos frescos
       notifyListeners();
     });
@@ -32,6 +33,7 @@ class FinanceProvider with ChangeNotifier {
     // Escuchar Cobros
     FirebaseFirestore.instance.collection('receivables').snapshots().listen((snapshot) {
       _receivables = snapshot.docs.map((doc) => Receivable.fromMap(doc.data(), doc.id)).toList();
+      _receivables.sort((a, b) => a.orderIndex.compareTo(b.orderIndex));
       notifyListeners();
     });
   }
@@ -100,6 +102,21 @@ class FinanceProvider with ChangeNotifier {
     FirebaseFirestore.instance.collection('debts').doc(debtId).delete();
   }
 
+  void reorderDebts(int oldIndex, int newIndex, List<Debt> currentList) {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final Debt item = currentList.removeAt(oldIndex);
+    currentList.insert(newIndex, item);
+
+    final batch = FirebaseFirestore.instance.batch();
+    for (int i = 0; i < currentList.length; i++) {
+      final docRef = FirebaseFirestore.instance.collection('debts').doc(currentList[i].id);
+      batch.update(docRef, {'orderIndex': i});
+    }
+    batch.commit();
+  }
+
   // --- MÉTODOS PARA COBROS (Ahora en Firestore) ---
   void addReceivable(Receivable receivable) {
     FirebaseFirestore.instance.collection('receivables').doc(receivable.id).set(receivable.toMap());
@@ -116,5 +133,20 @@ class FinanceProvider with ChangeNotifier {
 
   void deleteReceivable(String id) {
     FirebaseFirestore.instance.collection('receivables').doc(id).delete();
+  }
+
+  void reorderReceivables(int oldIndex, int newIndex, List<Receivable> currentList) {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final Receivable item = currentList.removeAt(oldIndex);
+    currentList.insert(newIndex, item);
+
+    final batch = FirebaseFirestore.instance.batch();
+    for (int i = 0; i < currentList.length; i++) {
+      final docRef = FirebaseFirestore.instance.collection('receivables').doc(currentList[i].id);
+      batch.update(docRef, {'orderIndex': i});
+    }
+    batch.commit();
   }
 }

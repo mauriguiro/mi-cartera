@@ -35,6 +35,7 @@ class Debt {
   final DateTime createdAt;
   final List<Payment> payments;
   final bool isPaid;
+  final int orderIndex;
 
   Debt({
     String? id,
@@ -47,6 +48,7 @@ class Debt {
     DateTime? createdAt,
     List<Payment>? payments,
     this.isPaid = false,
+    this.orderIndex = 0,
   })  : id = id ?? const Uuid().v4(),
         remainingAmount = remainingAmount ?? originalAmount,
         createdAt = createdAt ?? DateTime.now(),
@@ -61,6 +63,7 @@ class Debt {
         'dueDate': dueDate.toIso8601String(),
         'createdAt': createdAt.toIso8601String(),
         'isPaid': isPaid,
+        'orderIndex': orderIndex,
         'payments': payments.map((p) => p.toMap()).toList(),
       };
 
@@ -74,6 +77,7 @@ class Debt {
         dueDate: map['dueDate'] != null ? DateTime.parse(map['dueDate']) : DateTime.now(),
         createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
         isPaid: map['isPaid'] ?? false,
+        orderIndex: map['orderIndex'] ?? 0,
         payments: (map['payments'] as List<dynamic>?)?.map((p) => Payment.fromMap(p)).toList() ?? [],
       );
 
@@ -92,6 +96,7 @@ class Debt {
       createdAt: createdAt,
       payments: [...payments, newPayment],
       isPaid: (newRemaining <= 0), // Se marca pagado si llega a 0
+      orderIndex: orderIndex,
     );
   }
 
@@ -107,6 +112,7 @@ class Debt {
       createdAt: createdAt,
       payments: payments,
       isPaid: paid,
+      orderIndex: orderIndex,
     );
   }
 }

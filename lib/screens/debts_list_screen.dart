@@ -54,8 +54,14 @@ class DebtsListScreen extends StatelessWidget {
       decoration: isDone ? TextDecoration.lineThrough : null,
     );
 
+    final bgColor = debt.isFixed
+        ? null
+        : (isDark ? Colors.grey.shade800 : Colors.blueGrey.shade50);
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 4),
+      key: Key(debt.id),
+      color: bgColor,
+      margin: const EdgeInsets.only(bottom: 2),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8), 
@@ -65,10 +71,14 @@ class DebtsListScreen extends StatelessWidget {
       child: Theme(
         data: Theme.of(context).copyWith(
           dividerColor: Colors.transparent,
-          listTileTheme: const ListTileThemeData(dense: true, minVerticalPadding: 0),
+          listTileTheme: const ListTileThemeData(
+            dense: true, 
+            minVerticalPadding: 0,
+            visualDensity: VisualDensity(vertical: -4, horizontal: 0),
+          ),
         ),
         child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
           title: Row(
             children: [
               Expanded(child: Text(debt.concept, style: textStyle)),
@@ -203,11 +213,25 @@ class DebtsListScreen extends StatelessWidget {
               children: [
                 if (fixedDebts.isNotEmpty) ...[
                   _buildHeader('Fijas'),
-                  ...fixedDebts.map((d) => _buildDebtCard(d, context, isDark)),
+                  ReorderableListView(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onReorder: (oldIndex, newIndex) {
+                      context.read<FinanceProvider>().reorderDebts(oldIndex, newIndex, List.from(fixedDebts));
+                    },
+                    children: fixedDebts.map((d) => _buildDebtCard(d, context, isDark)).toList(),
+                  ),
                 ],
                 if (occasionalDebts.isNotEmpty) ...[
                   _buildHeader('Ocasionales'),
-                  ...occasionalDebts.map((d) => _buildDebtCard(d, context, isDark)),
+                  ReorderableListView(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    onReorder: (oldIndex, newIndex) {
+                      context.read<FinanceProvider>().reorderDebts(oldIndex, newIndex, List.from(occasionalDebts));
+                    },
+                    children: occasionalDebts.map((d) => _buildDebtCard(d, context, isDark)).toList(),
+                  ),
                 ],
               ],
             ),
