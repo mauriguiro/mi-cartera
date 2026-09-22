@@ -31,26 +31,6 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   const [debts, setDebts] = useState<Debt[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
 
-  useEffect(() => {
-    const unsubDebts = onSnapshot(collection(db, 'debts'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt));
-      data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-      setDebts(data);
-      checkMonthlyReset(data);
-    });
-
-    const unsubReceivables = onSnapshot(collection(db, 'receivables'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Receivable));
-      data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-      setReceivables(data);
-    });
-
-    return () => {
-      unsubDebts();
-      unsubReceivables();
-    };
-  }, []);
-
   const checkMonthlyReset = (currentDebts: Debt[]) => {
     if (typeof window === 'undefined') return;
     const now = new Date();
@@ -80,6 +60,26 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
       }
     }
   };
+
+  useEffect(() => {
+    const unsubDebts = onSnapshot(collection(db, 'debts'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt));
+      data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      setDebts(data);
+      checkMonthlyReset(data);
+    });
+
+    const unsubReceivables = onSnapshot(collection(db, 'receivables'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Receivable));
+      data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+      setReceivables(data);
+    });
+
+    return () => {
+      unsubDebts();
+      unsubReceivables();
+    };
+  }, []);
 
   const totalDebt = debts.filter(d => !d.isPaid).reduce((sum, d) => sum + d.remainingAmount, 0);
   const totalReceivables = receivables.filter(r => !r.isPaid).reduce((sum, r) => sum + r.amount, 0);
