@@ -17,13 +17,13 @@ export default function DashboardScreen() {
 
       <main className="p-4 space-y-8 pb-20">
         {/* Balance Neto */}
-        <div className="bg-gray-800 rounded-2xl p-6 text-center shadow-lg border border-gray-700 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-red-500"></div>
-          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">Balance Neto</p>
-          <p className={clsx("text-4xl font-black mb-1", netBalance >= 0 ? "text-white" : "text-red-400")}>
-            {formatCurrency(netBalance)}
-          </p>
-          <p className="text-xs text-gray-500">Total a cobrar menos total a pagar</p>
+        <div className="flex justify-center mt-2">
+          <div className="px-4 py-2 bg-gray-800 rounded-full border border-gray-700 flex items-center shadow-sm">
+            <span className="text-gray-400 text-xs font-medium mr-2">Balance Neto:</span>
+            <span className={clsx("text-sm font-bold", netBalance >= 0 ? "text-green-400" : "text-red-400")}>
+              {formatCurrency(netBalance)}
+            </span>
+          </div>
         </div>
 
         {/* Accesos */}
