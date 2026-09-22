@@ -116,7 +116,7 @@ export default function DebtsPage() {
     if (list.length === 0) return null;
     return (
       <div className="mb-6">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 px-1">{title}</h3>
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 px-1 text-center">{title}</h3>
         <DragDropContext onDragEnd={(res) => onDragEnd(res, isFixed)}>
           <Droppable droppableId={`droppable-${isFixed ? 'fixed' : 'occasional'}`}>
             {(provided) => (
