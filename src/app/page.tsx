@@ -10,7 +10,7 @@ export default function DashboardScreen() {
   const { netBalance, totalReceivables, totalDebt } = useFinance();
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-gray-900 min-h-screen relative shadow-sm">
+    <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative shadow-sm">
       <header className="bg-gray-800 text-white px-4 py-4 shadow-sm text-center border-b border-gray-700">
         <h1 className="text-xl font-black tracking-tight text-white">MiCartera</h1>
       </header>

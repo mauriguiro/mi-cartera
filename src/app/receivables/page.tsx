@@ -28,7 +28,7 @@ export default function ReceivablesPage() {
   };
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-gray-900 min-h-screen relative flex flex-col shadow-sm">
+    <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative flex flex-col shadow-sm">
       <header className="bg-gray-800 text-white px-4 py-3 flex items-center shadow-sm z-10 sticky top-0 border-b border-gray-700">
         <Link href="/" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
         <h1 className="text-lg font-bold">A Cobrar (Me deben)</h1>
@@ -36,14 +36,15 @@ export default function ReceivablesPage() {
 
       <main className="flex-1 p-4 overflow-y-auto pb-24">
         {receivables.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-            <p>No tienes cuentas por cobrar.</p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 mt-20">
+            <p className="text-lg font-medium">No hay cobros registrados</p>
+            <p className="text-sm mt-1">Toca el botón + para añadir uno</p>
           </div>
         ) : (
           <DragDropContext onDragEnd={onDragEnd}>
-            <Droppable droppableId="receivables-list">
+            <Droppable droppableId="droppable-receivables">
               {(provided) => (
-                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
                   {receivables.map((rec, index) => {
                     const isExpanded = expandedId === rec.id;
                     return (
@@ -53,7 +54,7 @@ export default function ReceivablesPage() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className="border rounded-lg overflow-hidden bg-gray-900 shadow-sm transition-colors"
+                            className="border-gray-700 border rounded-lg overflow-hidden bg-gray-800 shadow-sm transition-colors"
                           >
                             <div 
                               className="flex items-center justify-between p-3 cursor-pointer"

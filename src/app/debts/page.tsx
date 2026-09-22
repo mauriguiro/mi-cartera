@@ -32,7 +32,7 @@ export default function DebtsPage() {
   };
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-gray-900 min-h-screen relative flex flex-col shadow-sm">
+    <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative flex flex-col shadow-sm">
       <header className="bg-gray-800 text-white px-4 py-3 flex items-center shadow-sm z-10 sticky top-0 border-b border-gray-700">
         <Link href="/" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
         <h1 className="text-lg font-bold">A Pagar (Deudas)</h1>
@@ -40,18 +40,27 @@ export default function DebtsPage() {
 
       <main className="flex-1 p-4 overflow-y-auto pb-24">
         {debts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-            <p>No tienes deudas registradas 🎉</p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-500 mt-20">
+            <p className="text-lg font-medium">No hay deudas registradas</p>
+            <p className="text-sm mt-1">Toca el botón + para añadir una</p>
           </div>
         ) : (
           <>
             {fixedDebts.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-lg font-black text-white uppercase tracking-widest mb-4 px-1 text-center">Fijas</h3>
+                <div className="flex justify-between items-end mb-4 px-2">
+                  <h3 className="text-lg font-black text-white uppercase tracking-widest">Fijas</h3>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">Restante este mes</p>
+                    <p className="text-sm font-bold text-red-400">
+                      {formatCurrency(fixedDebts.filter(d => !d.isPaid).reduce((acc, d) => acc + d.originalAmount, 0))}
+                    </p>
+                  </div>
+                </div>
                 <DragDropContext onDragEnd={(res) => onDragEnd(res, true)}>
                   <Droppable droppableId="droppable-fixed">
                     {(provided) => (
-                      <div {...provided.droppableProps} ref={provided.innerRef}>
+                      <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
                         {fixedDebts.map((debt, index) => {
                           const isExpanded = expandedId === debt.id;
                           return (
@@ -62,8 +71,8 @@ export default function DebtsPage() {
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   className={clsx(
-                                    "mb-2 border rounded-lg overflow-hidden bg-gray-900 shadow-sm transition-colors",
-                                    !debt.isFixed && "bg-gray-800 border-gray-700"
+                                    "rounded-lg overflow-hidden shadow-sm transition-colors",
+                                    debt.isFixed ? "bg-gray-900" : "bg-gray-800 border border-gray-700"
                                   )}
                                 >
                                   <div 
@@ -153,7 +162,7 @@ export default function DebtsPage() {
                 <DragDropContext onDragEnd={(res) => onDragEnd(res, false)}>
                   <Droppable droppableId="droppable-occasional">
                     {(provided) => (
-                      <div {...provided.droppableProps} ref={provided.innerRef}>
+                      <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
                         {occasionalDebts.map((debt, index) => {
                           const isExpanded = expandedId === debt.id;
                           return (
@@ -164,8 +173,8 @@ export default function DebtsPage() {
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   className={clsx(
-                                    "mb-2 border rounded-lg overflow-hidden bg-gray-900 shadow-sm transition-colors",
-                                    !debt.isFixed && "bg-gray-800 border-gray-700"
+                                    "rounded-lg overflow-hidden shadow-sm transition-colors border",
+                                    debt.isFixed ? "bg-gray-900 border-transparent" : "bg-gray-800 border-gray-700"
                                   )}
                                 >
                                   <div 
