@@ -29,6 +29,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <FinanceProvider>
           {children}
         </FinanceProvider>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                  registration.unregister();
+                  console.log('Unregistered old service worker');
+                }
+                // Optionally reload once if a worker was unregistered
+                if (registrations.length > 0) {
+                  window.location.reload();
+                }
+              });
+            }
+          `
+        }} />
       </body>
     </html>
   );
