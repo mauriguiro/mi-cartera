@@ -51,7 +51,7 @@ export default function AddDebtPage() {
           <input type="number" step="0.01" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500" value={amount} onChange={(e) => setAmount(e.target.value)} required />
         </div>
         <div className="flex items-center">
-          <input type="checkbox" id="isFixed" className="w-4 h-4 text-red-500 bg-transparent rounded border-gray-600 focus:ring-red-500" checked={isFixed} onChange={(e) => setIsFixed(e.target.checked)} />
+          <input type="checkbox" id="isFixed" className="appearance-none w-5 h-5 bg-gray-900 border-2 border-gray-600 rounded flex items-center justify-center checked:bg-red-500 checked:border-red-500 cursor-pointer relative after:content-['✓'] after:text-white after:text-xs after:font-bold after:hidden checked:after:block transition-colors" checked={isFixed} onChange={(e) => setIsFixed(e.target.checked)} />
           <label htmlFor="isFixed" className="ml-2 text-sm font-bold text-gray-300">Es un gasto fijo (mensual)</label>
         </div>
         <div>

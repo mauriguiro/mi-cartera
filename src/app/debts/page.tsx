@@ -82,7 +82,7 @@ export default function DebtsPage() {
                                       {debt.isFixed && (
                                         <input
                                           type="checkbox"
-                                          className="w-4 h-4 text-red-400 bg-transparent rounded border-gray-600 focus:ring-red-500"
+                                          className="appearance-none w-5 h-5 bg-gray-900 border-2 border-gray-600 rounded flex items-center justify-center checked:bg-red-500 checked:border-red-500 cursor-pointer relative after:content-['✓'] after:text-white after:text-xs after:font-bold after:hidden checked:after:block transition-colors"
                                           checked={debt.isPaid}
                                           onClick={(e) => e.stopPropagation()}
                                           onChange={(e) => toggleDebtPaid(debt.id, e.target.checked)}
@@ -184,7 +184,7 @@ export default function DebtsPage() {
                                       {debt.isFixed && (
                                         <input
                                           type="checkbox"
-                                          className="w-4 h-4 text-red-400 bg-transparent rounded border-gray-600 focus:ring-red-500"
+                                          className="appearance-none w-5 h-5 bg-gray-900 border-2 border-gray-600 rounded flex items-center justify-center checked:bg-red-500 checked:border-red-500 cursor-pointer relative after:content-['✓'] after:text-white after:text-xs after:font-bold after:hidden checked:after:block transition-colors"
                                           checked={debt.isPaid}
                                           onClick={(e) => e.stopPropagation()}
                                           onChange={(e) => toggleDebtPaid(debt.id, e.target.checked)}
