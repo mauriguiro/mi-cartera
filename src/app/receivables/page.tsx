@@ -28,9 +28,9 @@ export default function ReceivablesPage() {
   };
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-white min-h-screen relative flex flex-col shadow-sm">
-      <header className="bg-blue-600 text-white px-4 py-3 flex items-center shadow-md z-10 sticky top-0">
-        <Link href="/" className="mr-3 p-1 hover:bg-blue-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
+    <div className="flex-1 w-full max-w-md mx-auto bg-gray-900 min-h-screen relative flex flex-col shadow-sm">
+      <header className="bg-gray-800 text-white px-4 py-3 flex items-center shadow-sm z-10 sticky top-0 border-b border-gray-700">
+        <Link href="/" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
         <h1 className="text-lg font-bold">A Cobrar (Me deben)</h1>
       </header>
 
@@ -53,7 +53,7 @@ export default function ReceivablesPage() {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className="border rounded-lg overflow-hidden bg-white shadow-sm transition-colors"
+                            className="border rounded-lg overflow-hidden bg-gray-900 shadow-sm transition-colors"
                           >
                             <div 
                               className="flex items-center justify-between p-3 cursor-pointer"
@@ -65,12 +65,12 @@ export default function ReceivablesPage() {
                                 </span>
                               </div>
                               <div className="flex items-center space-x-3">
-                                <span className={clsx("text-sm font-bold", rec.isPaid ? "text-gray-400" : "text-blue-600")}>
+                                <span className={clsx("text-sm font-bold", rec.isPaid ? "text-gray-400" : "text-blue-400")}>
                                   {formatCurrency(rec.amount)}
                                 </span>
                                 <input
                                   type="checkbox"
-                                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                  className="w-4 h-4 text-blue-400 rounded border-gray-300 focus:ring-blue-500"
                                   checked={rec.isPaid}
                                   onClick={(e) => e.stopPropagation()}
                                   onChange={(e) => markReceivableAsPaid(rec.id, e.target.checked)}
@@ -80,9 +80,9 @@ export default function ReceivablesPage() {
                             </div>
 
                             {isExpanded && (
-                              <div className="p-4 bg-gray-50 border-t border-gray-100 text-sm">
-                                <p className="text-gray-700 mb-1"><strong>Concepto:</strong> {rec.concept}</p>
-                                <p className="text-gray-700 mb-3"><strong>Creado el:</strong> {format(new Date(rec.createdAt), 'dd/MM/yyyy')}</p>
+                              <div className="p-4 bg-gray-950 border-t border-gray-800 text-sm">
+                                <p className="text-gray-300 mb-1"><strong>Concepto:</strong> {rec.concept}</p>
+                                <p className="text-gray-300 mb-3"><strong>Creado el:</strong> {format(new Date(rec.createdAt), 'dd/MM/yyyy')}</p>
                                 
                                 <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-200">
                                   <Link href={`/receivables/edit/${rec.id}`} className="text-orange-500 p-1 hover:bg-orange-50 rounded">

@@ -32,9 +32,9 @@ export default function DebtsPage() {
   };
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-white min-h-screen relative flex flex-col shadow-sm">
-      <header className="bg-red-600 text-white px-4 py-3 flex items-center shadow-md z-10 sticky top-0">
-        <Link href="/" className="mr-3 p-1 hover:bg-red-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
+    <div className="flex-1 w-full max-w-md mx-auto bg-gray-900 min-h-screen relative flex flex-col shadow-sm">
+      <header className="bg-gray-800 text-white px-4 py-3 flex items-center shadow-sm z-10 sticky top-0 border-b border-gray-700">
+        <Link href="/" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
         <h1 className="text-lg font-bold">A Pagar (Deudas)</h1>
       </header>
 
@@ -62,8 +62,8 @@ export default function DebtsPage() {
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   className={clsx(
-                                    "mb-2 border rounded-lg overflow-hidden bg-white shadow-sm transition-colors",
-                                    !debt.isFixed && "bg-slate-50 border-slate-200"
+                                    "mb-2 border rounded-lg overflow-hidden bg-gray-900 shadow-sm transition-colors",
+                                    !debt.isFixed && "bg-gray-800 border-gray-700"
                                   )}
                                 >
                                   <div 
@@ -76,13 +76,13 @@ export default function DebtsPage() {
                                       </span>
                                     </div>
                                     <div className="flex items-center space-x-3">
-                                      <span className={clsx("text-sm font-bold", debt.isPaid ? "text-gray-400" : "text-red-600")}>
+                                      <span className={clsx("text-sm font-bold", debt.isPaid ? "text-gray-400" : "text-red-400")}>
                                         {formatCurrency(debt.isFixed ? debt.originalAmount : debt.remainingAmount)}
                                       </span>
                                       {debt.isFixed && (
                                         <input
                                           type="checkbox"
-                                          className="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                                          className="w-4 h-4 text-red-400 rounded border-gray-300 focus:ring-red-500"
                                           checked={debt.isPaid}
                                           onClick={(e) => e.stopPropagation()}
                                           onChange={(e) => toggleDebtPaid(debt.id, e.target.checked)}
@@ -93,12 +93,12 @@ export default function DebtsPage() {
                                   </div>
 
                                   {isExpanded && (
-                                    <div className="p-4 bg-gray-50 border-t border-gray-100 text-sm">
-                                      <p className="text-gray-700 mb-1"><strong>Acreedor:</strong> {debt.creditor}</p>
+                                    <div className="p-4 bg-gray-950 border-t border-gray-800 text-sm">
+                                      <p className="text-gray-300 mb-1"><strong>Acreedor:</strong> {debt.creditor}</p>
                                       {!debt.isFixed && (
-                                        <p className="text-gray-700 mb-1"><strong>Monto Original:</strong> {formatCurrency(debt.originalAmount)}</p>
+                                        <p className="text-gray-300 mb-1"><strong>Monto Original:</strong> {formatCurrency(debt.originalAmount)}</p>
                                       )}
-                                      <p className="text-gray-700 mb-3"><strong>Creado el:</strong> {format(new Date(debt.createdAt), 'dd/MM/yyyy')}</p>
+                                      <p className="text-gray-300 mb-3"><strong>Creado el:</strong> {format(new Date(debt.createdAt), 'dd/MM/yyyy')}</p>
                                       
                                       {!debt.isFixed && (
                                         <>
@@ -164,8 +164,8 @@ export default function DebtsPage() {
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
                                   className={clsx(
-                                    "mb-2 border rounded-lg overflow-hidden bg-white shadow-sm transition-colors",
-                                    !debt.isFixed && "bg-slate-50 border-slate-200"
+                                    "mb-2 border rounded-lg overflow-hidden bg-gray-900 shadow-sm transition-colors",
+                                    !debt.isFixed && "bg-gray-800 border-gray-700"
                                   )}
                                 >
                                   <div 
@@ -178,13 +178,13 @@ export default function DebtsPage() {
                                       </span>
                                     </div>
                                     <div className="flex items-center space-x-3">
-                                      <span className={clsx("text-sm font-bold", debt.isPaid ? "text-gray-400" : "text-red-600")}>
+                                      <span className={clsx("text-sm font-bold", debt.isPaid ? "text-gray-400" : "text-red-400")}>
                                         {formatCurrency(debt.isFixed ? debt.originalAmount : debt.remainingAmount)}
                                       </span>
                                       {debt.isFixed && (
                                         <input
                                           type="checkbox"
-                                          className="w-4 h-4 text-red-600 rounded border-gray-300 focus:ring-red-500"
+                                          className="w-4 h-4 text-red-400 rounded border-gray-300 focus:ring-red-500"
                                           checked={debt.isPaid}
                                           onClick={(e) => e.stopPropagation()}
                                           onChange={(e) => toggleDebtPaid(debt.id, e.target.checked)}
@@ -195,12 +195,12 @@ export default function DebtsPage() {
                                   </div>
 
                                   {isExpanded && (
-                                    <div className="p-4 bg-gray-50 border-t border-gray-100 text-sm">
-                                      <p className="text-gray-700 mb-1"><strong>Acreedor:</strong> {debt.creditor}</p>
+                                    <div className="p-4 bg-gray-950 border-t border-gray-800 text-sm">
+                                      <p className="text-gray-300 mb-1"><strong>Acreedor:</strong> {debt.creditor}</p>
                                       {!debt.isFixed && (
-                                        <p className="text-gray-700 mb-1"><strong>Monto Original:</strong> {formatCurrency(debt.originalAmount)}</p>
+                                        <p className="text-gray-300 mb-1"><strong>Monto Original:</strong> {formatCurrency(debt.originalAmount)}</p>
                                       )}
-                                      <p className="text-gray-700 mb-3"><strong>Creado el:</strong> {format(new Date(debt.createdAt), 'dd/MM/yyyy')}</p>
+                                      <p className="text-gray-300 mb-3"><strong>Creado el:</strong> {format(new Date(debt.createdAt), 'dd/MM/yyyy')}</p>
                                       
                                       {!debt.isFixed && (
                                         <>
@@ -253,7 +253,7 @@ export default function DebtsPage() {
       </main>
 
       <div className="fixed bottom-6 right-6 lg:absolute lg:bottom-6 lg:right-6">
-        <Link href="/debts/add" className="bg-red-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 transition-transform active:scale-95">
+        <Link href="/debts/add" className="bg-red-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-transform active:scale-95">
           <Plus size={24} />
         </Link>
       </div>
