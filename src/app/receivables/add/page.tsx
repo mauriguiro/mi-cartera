@@ -29,28 +29,28 @@ export default function AddReceivablePage() {
   };
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-white min-h-screen relative shadow-sm">
-      <header className="bg-blue-600 text-white px-4 py-3 flex items-center shadow-md">
-        <Link href="/receivables" className="mr-3 p-1 hover:bg-blue-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
+    <div className="flex-1 w-full max-w-md mx-auto bg-gray-900 min-h-screen relative shadow-sm">
+      <header className="bg-gray-800 text-white px-4 py-3 flex items-center shadow-sm border-b border-gray-700">
+        <Link href="/receivables" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
         <h1 className="text-lg font-bold">Añadir Cobro</h1>
       </header>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Concepto</label>
-          <input type="text" className="w-full border border-gray-300 rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={concept} onChange={(e) => setConcept(e.target.value)} required />
+          <label className="block text-sm font-bold text-gray-300 mb-1">Concepto</label>
+          <input type="text" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={concept} onChange={(e) => setConcept(e.target.value)} required />
         </div>
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Deudor (Quién debe)</label>
-          <input type="text" className="w-full border border-gray-300 rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={debtor} onChange={(e) => setDebtor(e.target.value)} required />
+          <label className="block text-sm font-bold text-gray-300 mb-1">Deudor (Quién debe)</label>
+          <input type="text" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={debtor} onChange={(e) => setDebtor(e.target.value)} required />
         </div>
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Monto a cobrar</label>
-          <input type="number" step="0.01" className="w-full border border-gray-300 rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+          <label className="block text-sm font-bold text-gray-300 mb-1">Monto a cobrar</label>
+          <input type="number" step="0.01" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={amount} onChange={(e) => setAmount(e.target.value)} required />
         </div>
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1">Fecha de Vencimiento (opcional)</label>
-          <input type="date" className="w-full border border-gray-300 rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          <label className="block text-sm font-bold text-gray-300 mb-1">Fecha de Vencimiento (opcional)</label>
+          <input type="date" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-blue-500 focus:border-blue-500 dark:[color-scheme:dark]" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </div>
         
         <button type="submit" className="w-full bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 transition-colors mt-6">

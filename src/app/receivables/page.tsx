@@ -70,7 +70,7 @@ export default function ReceivablesPage() {
                                 </span>
                                 <input
                                   type="checkbox"
-                                  className="w-4 h-4 text-blue-400 rounded border-gray-300 focus:ring-blue-500"
+                                  className="w-4 h-4 text-blue-400 bg-transparent rounded border-gray-600 focus:ring-blue-500"
                                   checked={rec.isPaid}
                                   onClick={(e) => e.stopPropagation()}
                                   onChange={(e) => markReceivableAsPaid(rec.id, e.target.checked)}
