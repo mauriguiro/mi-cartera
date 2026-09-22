@@ -47,7 +47,7 @@ export default function DebtsPage() {
           <>
             {fixedDebts.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 px-1 text-center">Fijas</h3>
+                <h3 className="text-lg font-black text-white uppercase tracking-widest mb-4 px-1 text-center">Fijas</h3>
                 <DragDropContext onDragEnd={(res) => onDragEnd(res, true)}>
                   <Droppable droppableId="droppable-fixed">
                     {(provided) => (
@@ -149,7 +149,7 @@ export default function DebtsPage() {
 
             {occasionalDebts.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 px-1 text-center">Ocasionales</h3>
+                <h3 className="text-lg font-black text-white uppercase tracking-widest mb-4 px-1 text-center">Ocasionales</h3>
                 <DragDropContext onDragEnd={(res) => onDragEnd(res, false)}>
                   <Droppable droppableId="droppable-occasional">
                     {(provided) => (
