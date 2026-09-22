@@ -13,6 +13,13 @@ import clsx from 'clsx';
 export default function DebtsPage() {
   const { debts, reorderDebts, toggleDebtPaid, deleteDebt } = useFinance();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   const fixedDebts = debts.filter(d => d.isFixed);
   const occasionalDebts = debts.filter(d => !d.isFixed);

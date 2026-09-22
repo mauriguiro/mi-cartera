@@ -13,6 +13,13 @@ import clsx from 'clsx';
 export default function ReceivablesPage() {
   const { receivables, reorderReceivables, markReceivableAsPaid, deleteReceivable } = useFinance();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;

@@ -14,10 +14,10 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 const db = getFirestore(app);
 
 // Enable offline persistence
-if (typeof window !== 'undefined') {
-  enableMultiTabIndexedDbPersistence(db).catch((err) => {
-    console.error("Firebase persistence error:", err);
-  });
-}
+// if (typeof window !== 'undefined') {
+//   enableMultiTabIndexedDbPersistence(db).catch((err) => {
+//     console.error("Firebase persistence error:", err);
+//   });
+// }
 
 export { db };
