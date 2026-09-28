@@ -33,10 +33,20 @@ export default function EditDebtPage() {
     e.preventDefault();
     if (!concept || !creditor || !amount) return;
 
+    const numAmount = parseFloat(amount);
+    const debt = debts.find(d => d.id === id);
+    const payments = debt?.payments || [];
+    const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const newRemainingAmount = isFixed 
+      ? (debt?.isPaid ? 0 : numAmount) 
+      : Math.max(0, numAmount - totalPaid);
+
     updateDebt(id, {
       concept,
       creditor,
-      originalAmount: parseFloat(amount),
+      originalAmount: numAmount,
+      remainingAmount: newRemainingAmount,
+      isPaid: isFixed ? (debt?.isPaid ?? false) : (newRemainingAmount === 0),
       isFixed,
       dueDate: dueDate ? new Date(dueDate).toISOString() : undefined
     });
@@ -52,12 +62,12 @@ export default function EditDebtPage() {
 
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
         <div>
-          <label className="block text-sm font-bold text-gray-300 mb-1">Concepto</label>
-          <input type="text" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500" value={concept} onChange={(e) => setConcept(e.target.value)} required />
-        </div>
-        <div>
           <label className="block text-sm font-bold text-gray-300 mb-1">Acreedor</label>
           <input type="text" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500" value={creditor} onChange={(e) => setCreditor(e.target.value)} required />
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-300 mb-1">Concepto</label>
+          <input type="text" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500" value={concept} onChange={(e) => setConcept(e.target.value)} required />
         </div>
         <div>
           <label className="block text-sm font-bold text-gray-300 mb-1">Monto Original</label>

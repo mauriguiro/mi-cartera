@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#030712" />
+    </linearGradient>
+    <linearGradient id="billGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="billGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="coinGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="coinGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded squircle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" stroke="#374151" stroke-width="8"/>
+
+  <!-- Back Banknote (tilted left) -->
+  <g transform="translate(240, 210) rotate(-12) translate(-150, -85)" filter="url(#shadow)">
+    <rect width="300" height="170" rx="18" fill="url(#billGrad1)" stroke="#6ee7b7" stroke-width="6"/>
+    <rect x="18" y="18" width="264" height="134" rx="10" fill="none" stroke="#a7f3d0" stroke-width="3" stroke-dasharray="8 6"/>
+    <circle cx="150" cy="85" r="38" fill="#047857" opacity="0.3"/>
+    <circle cx="150" cy="85" r="28" fill="none" stroke="#a7f3d0" stroke-width="4"/>
+    <text x="150" y="97" font-family="Arial, sans-serif" font-size="34" font-weight="900" fill="#ffffff" text-anchor="middle">$</text>
+  </g>
+
+  <!-- Front Banknote (tilted right) -->
+  <g transform="translate(260, 260) rotate(8) translate(-150, -85)" filter="url(#shadow)">
+    <rect width="300" height="170" rx="18" fill="url(#billGrad2)" stroke="#a7f3d0" stroke-width="6"/>
+    <rect x="18" y="18" width="264" height="134" rx="10" fill="none" stroke="#d1fae5" stroke-width="3" stroke-dasharray="8 6"/>
+    <circle cx="150" cy="85" r="40" fill="#065f46" opacity="0.35"/>
+    <circle cx="150" cy="85" r="30" fill="none" stroke="#d1fae5" stroke-width="4"/>
+    <text x="150" y="99" font-family="Arial, sans-serif" font-size="38" font-weight="900" fill="#ffffff" text-anchor="middle">$</text>
+    <circle cx="36" cy="36" r="10" fill="#d1fae5" opacity="0.6"/>
+    <circle cx="264" cy="36" r="10" fill="#d1fae5" opacity="0.6"/>
+    <circle cx="36" cy="134" r="10" fill="#d1fae5" opacity="0.6"/>
+    <circle cx="264" cy="134" r="10" fill="#d1fae5" opacity="0.6"/>
+  </g>
+
+  <!-- Stack of Coins (Bottom Right) -->
+  <g transform="translate(350, 360)" filter="url(#shadow)">
+    <ellipse cx="0" cy="20" rx="55" ry="30" fill="#b45309"/>
+    <ellipse cx="0" cy="10" rx="55" ry="30" fill="url(#coinGrad1)" stroke="#fef08a" stroke-width="4"/>
+  </g>
+
+  <g transform="translate(350, 335)" filter="url(#shadow)">
+    <ellipse cx="0" cy="20" rx="55" ry="30" fill="#b45309"/>
+    <ellipse cx="0" cy="10" rx="55" ry="30" fill="url(#coinGrad2)" stroke="#fef08a" stroke-width="4"/>
+  </g>
+
+  <g transform="translate(330, 310)" filter="url(#shadow)">
+    <circle cx="0" cy="0" r="58" fill="url(#coinGrad2)" stroke="#fef08a" stroke-width="6"/>
+    <circle cx="0" cy="0" r="45" fill="none" stroke="#d97706" stroke-width="3" stroke-dasharray="6 4"/>
+    <text x="0" y="16" font-family="Arial, sans-serif" font-size="46" font-weight="900" fill="#78350f" text-anchor="middle">$</text>
+  </g>
+
+  <!-- Small Coin on the left -->
+  <g transform="translate(140, 350)" filter="url(#shadow)">
+    <circle cx="0" cy="0" r="46" fill="url(#coinGrad1)" stroke="#fef08a" stroke-width="5"/>
+    <circle cx="0" cy="0" r="34" fill="none" stroke="#b45309" stroke-width="3"/>
+    <text x="0" y="13" font-family="Arial, sans-serif" font-size="36" font-weight="900" fill="#78350f" text-anchor="middle">$</text>
+  </g>
+</svg>

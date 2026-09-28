@@ -63,7 +63,38 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
 
   useEffect(() => {
     const unsubDebts = onSnapshot(collection(db, 'debts'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Debt));
+      const data = snapshot.docs.map(docSnap => {
+        const raw = { id: docSnap.id, ...docSnap.data() } as Debt;
+        const payments = Array.isArray(raw.payments) ? raw.payments : [];
+        const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+        
+        let remainingAmount = raw.remainingAmount;
+        let isPaid = raw.isPaid ?? false;
+
+        if (raw.isFixed) {
+          remainingAmount = isPaid ? 0 : raw.originalAmount;
+        } else {
+          // If remainingAmount is desynchronized or missing
+          const expectedRemaining = Math.max(0, (raw.originalAmount || 0) - totalPaid);
+          if (remainingAmount === undefined || (payments.length === 0 && remainingAmount !== raw.originalAmount)) {
+            remainingAmount = expectedRemaining;
+          }
+          isPaid = remainingAmount === 0;
+        }
+
+        // Auto-heal in database if there was desynchronization
+        if (raw.remainingAmount !== remainingAmount || raw.isPaid !== isPaid) {
+          updateDoc(doc(db, 'debts', raw.id), { remainingAmount, isPaid }).catch(console.error);
+        }
+
+        return {
+          ...raw,
+          payments,
+          remainingAmount,
+          isPaid,
+        };
+      });
+
       data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
       setDebts(data);
       checkMonthlyReset(data);
@@ -81,8 +112,14 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
     };
   }, []);
 
-  const totalDebt = debts.filter(d => !d.isPaid).reduce((sum, d) => sum + d.remainingAmount, 0);
-  const totalReceivables = receivables.filter(r => !r.isPaid).reduce((sum, r) => sum + r.amount, 0);
+  const totalDebt = debts.filter(d => !d.isPaid).reduce((sum, d) => {
+    if (d.isFixed) {
+      return sum + (d.originalAmount || 0);
+    }
+    return sum + (d.remainingAmount !== undefined ? d.remainingAmount : (d.originalAmount || 0));
+  }, 0);
+
+  const totalReceivables = receivables.filter(r => !r.isPaid).reduce((sum, r) => sum + (r.amount || 0), 0);
   const netBalance = totalReceivables - totalDebt;
 
   // Debts Methods
@@ -100,7 +137,35 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const updateDebt = (id: string, updates: Partial<Debt>) => {
-    updateDoc(doc(db, 'debts', id), updates);
+    const debt = debts.find(d => d.id === id);
+    if (debt) {
+      const newOriginalAmount = updates.originalAmount !== undefined ? Number(updates.originalAmount) : debt.originalAmount;
+      const isFixed = updates.isFixed !== undefined ? updates.isFixed : debt.isFixed;
+      const payments = Array.isArray(updates.payments) ? updates.payments : (debt.payments || []);
+      const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+      let newRemainingAmount: number;
+      let isPaid = updates.isPaid !== undefined ? updates.isPaid : debt.isPaid;
+
+      if (isFixed) {
+        newRemainingAmount = isPaid ? 0 : newOriginalAmount;
+      } else {
+        newRemainingAmount = Math.max(0, newOriginalAmount - totalPaid);
+        isPaid = newRemainingAmount === 0;
+      }
+
+      const finalUpdates: Partial<Debt> = {
+        ...updates,
+        originalAmount: newOriginalAmount,
+        remainingAmount: updates.remainingAmount !== undefined ? updates.remainingAmount : newRemainingAmount,
+        isPaid,
+        isFixed,
+      };
+
+      updateDoc(doc(db, 'debts', id), finalUpdates);
+    } else {
+      updateDoc(doc(db, 'debts', id), updates);
+    }
   };
 
   const toggleDebtPaid = (id: string, paid: boolean) => {

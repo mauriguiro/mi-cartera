@@ -39,12 +39,12 @@ export default function AddDebtPage() {
 
       <form onSubmit={handleSubmit} className="p-4 space-y-4">
         <div>
-          <label className="block text-sm font-bold text-gray-300 mb-1">Concepto</label>
-          <input type="text" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500" value={concept} onChange={(e) => setConcept(e.target.value)} required />
-        </div>
-        <div>
           <label className="block text-sm font-bold text-gray-300 mb-1">Acreedor</label>
           <input type="text" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500" value={creditor} onChange={(e) => setCreditor(e.target.value)} required />
+        </div>
+        <div>
+          <label className="block text-sm font-bold text-gray-300 mb-1">Concepto</label>
+          <input type="text" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500" value={concept} onChange={(e) => setConcept(e.target.value)} required />
         </div>
         <div>
           <label className="block text-sm font-bold text-gray-300 mb-1">Monto Original</label>

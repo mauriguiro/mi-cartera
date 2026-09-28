@@ -6,16 +6,26 @@ import { formatCurrency } from '@/utils/formatters';
 import { Wallet, CreditCard, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 
+import Image from 'next/image';
+
 export default function DashboardScreen() {
   const { netBalance, totalReceivables, totalDebt } = useFinance();
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative shadow-sm">
-      <header className="bg-gray-800 text-white px-4 py-4 shadow-sm text-center border-b border-gray-700">
+    <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative shadow-sm overflow-hidden flex flex-col">
+      {/* Decorative background watermark */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.04] z-0">
+        <Image src="/icon.svg" alt="" width={320} height={320} className="select-none" priority />
+      </div>
+
+      <header className="bg-gray-800 text-white px-4 py-4 shadow-sm flex items-center justify-center gap-2.5 border-b border-gray-700 relative z-10">
+        <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-gray-900 border border-gray-700 shadow-inner">
+          <Image src="/icon.svg" alt="MiCartera Icon" width={28} height={28} />
+        </div>
         <h1 className="text-xl font-black tracking-tight text-white">MiCartera</h1>
       </header>
 
-      <main className="p-4 space-y-8 pb-20">
+      <main className="p-4 space-y-8 pb-20 relative z-10">
         {/* Balance Neto */}
         <div className="flex justify-center mt-2">
           <div className="px-4 py-2 bg-gray-800 rounded-full border border-gray-700 flex items-center shadow-sm">
