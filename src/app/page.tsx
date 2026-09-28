@@ -14,8 +14,8 @@ export default function DashboardScreen() {
   return (
     <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative shadow-sm flex flex-col">
       <header className="bg-gray-800 text-white px-4 py-4 shadow-sm flex items-center justify-center gap-2.5 border-b border-gray-700">
-        <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-gray-900 border border-gray-700 shadow-inner">
-          <Image src="/icon.svg" alt="MiCartera Icon" width={28} height={28} />
+        <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center bg-gray-900 border border-gray-700 shadow-md">
+          <Image src="/icon.png" alt="MiCartera Icon" width={36} height={36} className="object-cover" priority />
         </div>
         <h1 className="text-xl font-black tracking-tight text-white">MiCartera</h1>
       </header>
