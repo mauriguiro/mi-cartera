@@ -17,10 +17,23 @@ import { FinanceProvider } from "@/contexts/FinanceContext";
 export const metadata: Metadata = {
   title: "MiCartera",
   description: "Gestión de deudas y pagos",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "MiCartera",
+  },
+};
+
+export const viewport = {
+  themeColor: "#1f2937",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

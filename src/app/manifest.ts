@@ -1,0 +1,21 @@
+import type { MetadataRoute } from 'next';
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: 'MiCartera',
+    short_name: 'MiCartera',
+    description: 'Gestión de deudas y pagos',
+    start_url: '/',
+    display: 'standalone',
+    background_color: '#030712',
+    theme_color: '#1f2937',
+    icons: [
+      {
+        src: '/icon.svg',
+        sizes: 'any',
+        type: 'image/svg+xml',
+        purpose: 'any',
+      },
+    ],
+  };
+}
