@@ -17,10 +17,17 @@ import { FinanceProvider } from "@/contexts/FinanceContext";
 export const metadata: Metadata = {
   title: "MiCartera",
   description: "Gestión de deudas y pagos",
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.json",
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: [
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" }
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/icon.svg", type: "image/svg+xml" }
+    ],
   },
   appleWebApp: {
     capable: true,
@@ -49,15 +56,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{
           __html: `
             if ('serviceWorker' in navigator) {
-              navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                  registration.unregister();
-                  console.log('Unregistered old service worker');
-                }
-                if (registrations.length > 0 && !sessionStorage.getItem('sw_reloaded')) {
-                  sessionStorage.setItem('sw_reloaded', 'true');
-                  window.location.reload();
-                }
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+                  console.log('SW registered successfully:', registration.scope);
+                }).catch(function(err) {
+                  console.log('SW registration failed:', err);
+                });
               });
             }
           `
