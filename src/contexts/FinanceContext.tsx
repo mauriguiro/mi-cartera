@@ -62,49 +62,66 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   useEffect(() => {
-    const unsubDebts = onSnapshot(collection(db, 'debts'), (snapshot) => {
-      const data = snapshot.docs.map(docSnap => {
-        const raw = { id: docSnap.id, ...docSnap.data() } as Debt;
-        const payments = Array.isArray(raw.payments) ? raw.payments : [];
-        const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-        
-        let remainingAmount = raw.remainingAmount;
-        let isPaid = raw.isPaid ?? false;
+    const unsubDebts = onSnapshot(
+      collection(db, 'debts'),
+      (snapshot) => {
+        const data = snapshot.docs.map((docSnap) => {
+          const raw = { id: docSnap.id, ...docSnap.data() } as Debt;
+          const payments = Array.isArray(raw.payments) ? raw.payments : [];
+          const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+          
+          const originalAmount = Number(raw.originalAmount) || 0;
+          let remainingAmount = raw.remainingAmount !== undefined ? Number(raw.remainingAmount) : originalAmount;
+          let isPaid = raw.isPaid ?? false;
 
-        if (raw.isFixed) {
-          remainingAmount = isPaid ? 0 : raw.originalAmount;
-        } else {
-          // If remainingAmount is desynchronized or missing
-          const expectedRemaining = Math.max(0, (raw.originalAmount || 0) - totalPaid);
-          if (remainingAmount === undefined || (payments.length === 0 && remainingAmount !== raw.originalAmount)) {
-            remainingAmount = expectedRemaining;
+          if (raw.isFixed) {
+            remainingAmount = isPaid ? 0 : originalAmount;
+          } else {
+            // Recalculate remaining amount safely
+            if (payments.length === 0 && !isPaid) {
+              remainingAmount = originalAmount;
+            } else {
+              remainingAmount = Math.max(0, originalAmount - totalPaid);
+            }
+            isPaid = remainingAmount === 0;
           }
-          isPaid = remainingAmount === 0;
-        }
 
-        // Auto-heal in database if there was desynchronization
-        if (raw.remainingAmount !== remainingAmount || raw.isPaid !== isPaid) {
-          updateDoc(doc(db, 'debts', raw.id), { remainingAmount, isPaid }).catch(console.error);
-        }
+          return {
+            ...raw,
+            originalAmount,
+            remainingAmount,
+            payments,
+            isPaid,
+          };
+        });
 
-        return {
-          ...raw,
-          payments,
-          remainingAmount,
-          isPaid,
-        };
-      });
+        data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        setDebts(data);
+        checkMonthlyReset(data);
+      },
+      (error) => {
+        console.error("Error cargando deudas de Firestore:", error);
+      }
+    );
 
-      data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-      setDebts(data);
-      checkMonthlyReset(data);
-    });
-
-    const unsubReceivables = onSnapshot(collection(db, 'receivables'), (snapshot) => {
-      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Receivable));
-      data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-      setReceivables(data);
-    });
+    const unsubReceivables = onSnapshot(
+      collection(db, 'receivables'),
+      (snapshot) => {
+        const data = snapshot.docs.map((docSnap) => {
+          const raw = { id: docSnap.id, ...docSnap.data() } as Receivable;
+          return {
+            ...raw,
+            amount: Number(raw.amount) || 0,
+            isPaid: raw.isPaid ?? false,
+          };
+        });
+        data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        setReceivables(data);
+      },
+      (error) => {
+        console.error("Error cargando cobros de Firestore:", error);
+      }
+    );
 
     return () => {
       unsubDebts();
