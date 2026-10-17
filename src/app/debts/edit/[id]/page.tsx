@@ -5,6 +5,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { formatAmountInput, numberToFormattedInput, parseAmount } from '@/utils/formatters';
 
 export default function EditDebtPage() {
   const { debts, updateDebt } = useFinance();
@@ -23,7 +24,7 @@ export default function EditDebtPage() {
     if (debt) {
       setConcept(debt.concept);
       setCreditor(debt.creditor);
-      setAmount(debt.originalAmount.toString());
+      setAmount(numberToFormattedInput(debt.originalAmount));
       setIsFixed(debt.isFixed);
       setDueDate(debt.dueDate?.split('T')[0] || '');
     }
@@ -31,9 +32,9 @@ export default function EditDebtPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!concept || !creditor || !amount) return;
+    const numAmount = parseAmount(amount);
+    if (!concept || !creditor || numAmount <= 0) return;
 
-    const numAmount = parseFloat(amount);
     const debt = debts.find(d => d.id === id);
     const payments = debt?.payments || [];
     const totalPaid = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
@@ -71,7 +72,15 @@ export default function EditDebtPage() {
         </div>
         <div>
           <label className="block text-sm font-bold text-gray-300 mb-1">Monto Original</label>
-          <input type="number" step="0.01" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="0"
+            className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500 font-bold"
+            value={amount}
+            onChange={(e) => setAmount(formatAmountInput(e.target.value))}
+            required
+          />
         </div>
         <div className="flex items-center">
           <input type="checkbox" id="isFixed" className="appearance-none w-5 h-5 bg-gray-900 border-2 border-gray-600 rounded flex items-center justify-center checked:bg-red-500 checked:border-red-500 cursor-pointer relative after:content-['✓'] after:text-white after:text-xs after:font-bold after:hidden checked:after:block transition-colors" checked={isFixed} onChange={(e) => setIsFixed(e.target.checked)} />

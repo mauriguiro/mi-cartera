@@ -283,7 +283,7 @@ export default function PortfolioPage() {
 
       <div className="fixed bottom-6 right-6 lg:absolute lg:bottom-6 lg:right-6">
         <Link
-          href="/portfolio/add"
+          href={filterCategory !== 'todos' ? `/portfolio/add?category=${filterCategory}` : '/portfolio/add'}
           className="bg-emerald-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:bg-emerald-500 transition-transform active:scale-95"
         >
           <Plus size={24} />

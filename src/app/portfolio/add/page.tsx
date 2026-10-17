@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Banknote, FileSpreadsheet, Landmark } from 'lucide-react';
+import { ArrowLeft, Banknote, FileSpreadsheet, Landmark, Check } from 'lucide-react';
 import { PortfolioCategory } from '@/types';
+import { formatAmountInput, parseAmount } from '@/utils/formatters';
 import clsx from 'clsx';
 
 const QUICK_TITLES: Record<PortfolioCategory, string[]> = {
@@ -25,9 +26,48 @@ export default function AddPortfolioPage() {
   const router = useRouter();
 
   const [category, setCategory] = useState<PortfolioCategory>('efectivo');
+  const [manualCategorySelected, setManualCategorySelected] = useState(false);
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const cat = params.get('category');
+      if (cat === 'efectivo' || cat === 'cheque' || cat === 'cuenta') {
+        setCategory(cat);
+        setManualCategorySelected(true);
+      }
+    }
+  }, []);
+
+  const selectCategory = (cat: PortfolioCategory) => {
+    setCategory(cat);
+    setManualCategorySelected(true);
+  };
+
+  const handleTitleChange = (val: string) => {
+    setTitle(val);
+    if (!manualCategorySelected) {
+      const lower = val.toLowerCase();
+      if (
+        lower.includes('mercado') ||
+        lower.includes('mp') ||
+        lower.includes('uala') ||
+        lower.includes('ualá') ||
+        lower.includes('naranja') ||
+        lower.includes('banco') ||
+        lower.includes('cuenta') ||
+        lower.includes('billetera') ||
+        lower.includes('brubank')
+      ) {
+        setCategory('cuenta');
+      } else if (lower.includes('cheque') || lower.includes('echeq') || lower.includes('e-cheq')) {
+        setCategory('cheque');
+      }
+    }
+  };
 
   const appendNoteChip = (chip: string) => {
     setNotes((prev) => {
@@ -38,12 +78,13 @@ export default function AddPortfolioPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !amount) return;
+    const numericAmount = parseAmount(amount);
+    if (!title || numericAmount <= 0) return;
 
     addPortfolioItem({
       category,
       title: title.trim(),
-      amount: parseFloat(amount),
+      amount: numericAmount,
       notes: notes.trim(),
     });
     router.push('/portfolio');
@@ -67,42 +108,57 @@ export default function AddPortfolioPage() {
           <div className="grid grid-cols-3 gap-2.5">
             <button
               type="button"
-              onClick={() => setCategory('efectivo')}
+              onClick={() => selectCategory('efectivo')}
               className={clsx(
-                'flex flex-col items-center justify-center p-3 rounded-xl border font-bold text-xs transition-all',
+                'relative flex flex-col items-center justify-center p-3 rounded-xl border-2 font-bold text-xs transition-all',
                 category === 'efectivo'
-                  ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300 shadow-sm'
+                  ? 'bg-emerald-600/25 border-emerald-500 text-emerald-300 shadow-sm'
                   : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'
               )}
             >
+              {category === 'efectivo' && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-gray-950 flex items-center justify-center">
+                  <Check size={11} strokeWidth={3} />
+                </span>
+              )}
               <Banknote size={22} className="mb-1.5" />
               Efectivo
             </button>
 
             <button
               type="button"
-              onClick={() => setCategory('cheque')}
+              onClick={() => selectCategory('cheque')}
               className={clsx(
-                'flex flex-col items-center justify-center p-3 rounded-xl border font-bold text-xs transition-all',
+                'relative flex flex-col items-center justify-center p-3 rounded-xl border-2 font-bold text-xs transition-all',
                 category === 'cheque'
-                  ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300 shadow-sm'
+                  ? 'bg-emerald-600/25 border-emerald-500 text-emerald-300 shadow-sm'
                   : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'
               )}
             >
+              {category === 'cheque' && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-gray-950 flex items-center justify-center">
+                  <Check size={11} strokeWidth={3} />
+                </span>
+              )}
               <FileSpreadsheet size={22} className="mb-1.5" />
               Cheque
             </button>
 
             <button
               type="button"
-              onClick={() => setCategory('cuenta')}
+              onClick={() => selectCategory('cuenta')}
               className={clsx(
-                'flex flex-col items-center justify-center p-3 rounded-xl border font-bold text-xs transition-all',
+                'relative flex flex-col items-center justify-center p-3 rounded-xl border-2 font-bold text-xs transition-all',
                 category === 'cuenta'
-                  ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300 shadow-sm'
+                  ? 'bg-emerald-600/25 border-emerald-500 text-emerald-300 shadow-sm'
                   : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'
               )}
             >
+              {category === 'cuenta' && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-emerald-500 text-gray-950 flex items-center justify-center">
+                  <Check size={11} strokeWidth={3} />
+                </span>
+              )}
               <Landmark size={22} className="mb-1.5" />
               En Cuenta
             </button>
@@ -125,7 +181,7 @@ export default function AddPortfolioPage() {
             }
             className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-emerald-500 focus:border-emerald-500"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => handleTitleChange(e.target.value)}
             required
           />
           <div className="flex flex-wrap gap-1.5 mt-2">
@@ -142,16 +198,16 @@ export default function AddPortfolioPage() {
           </div>
         </div>
 
-        {/* Monto */}
+        {/* Monto con separadores de miles */}
         <div>
           <label className="block text-sm font-bold text-gray-300 mb-1">Monto Disponible</label>
           <input
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-emerald-500 focus:border-emerald-500"
+            type="text"
+            inputMode="decimal"
+            placeholder="0"
+            className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-emerald-500 focus:border-emerald-500 font-bold"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => setAmount(formatAmountInput(e.target.value))}
             required
           />
         </div>
@@ -186,7 +242,7 @@ export default function AddPortfolioPage() {
           type="submit"
           className="w-full bg-emerald-600 text-white font-bold py-3 rounded hover:bg-emerald-500 transition-colors mt-6 shadow-md"
         >
-          Guardar en Cartera
+          Guardar en {category === 'efectivo' ? 'Efectivo' : category === 'cheque' ? 'Cheques' : 'En Cuenta'}
         </button>
       </form>
     </div>

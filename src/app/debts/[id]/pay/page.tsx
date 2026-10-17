@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, formatAmountInput, parseAmount } from '@/utils/formatters';
 
 export default function PayDebtPage() {
   const { debts, payDebt } = useFinance();
@@ -18,9 +18,11 @@ export default function PayDebtPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !debt) return;
+    if (!debt) return;
+    const numericAmount = parseAmount(amount);
+    if (numericAmount <= 0 || numericAmount > debt.remainingAmount) return;
 
-    payDebt(id, parseFloat(amount));
+    payDebt(id, numericAmount);
     router.push('/debts');
   };
 
@@ -45,12 +47,12 @@ export default function PayDebtPage() {
         <div>
           <label className="block text-sm font-bold text-gray-300 mb-1">Monto a abonar</label>
           <input 
-            type="number" 
-            step="0.01" 
-            max={debt.remainingAmount}
-            className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500" 
+            type="text" 
+            inputMode="decimal"
+            placeholder="0"
+            className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-red-500 focus:border-red-500 font-bold" 
             value={amount} 
-            onChange={(e) => setAmount(e.target.value)} 
+            onChange={(e) => setAmount(formatAmountInput(e.target.value))} 
             required 
             autoFocus
           />

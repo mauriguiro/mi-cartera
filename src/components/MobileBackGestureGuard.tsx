@@ -15,8 +15,8 @@ export default function MobileBackGestureGuard() {
   } | null>(null);
 
   useEffect(() => {
-    const EDGE_THRESHOLD = 32; // px from left or right screen edge
-    const SWIPE_DISTANCE = 50; // px horizontal movement
+    const EDGE_THRESHOLD = 28; // px from left or right screen edge
+    const SWIPE_DISTANCE = 55; // px horizontal movement
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
@@ -40,7 +40,8 @@ export default function MobileBackGestureGuard() {
       const dx = touch.clientX - touchState.current.startX;
       const dy = touch.clientY - touchState.current.startY;
 
-      if (Math.abs(dx) > 15 && Math.abs(dx) > Math.abs(dy)) {
+      // Only mark as swipe if there is a clear horizontal movement
+      if (Math.abs(dx) > 25 && Math.abs(dx) > Math.abs(dy) * 1.3) {
         touchState.current.didSwipe = true;
       }
     };
@@ -57,10 +58,9 @@ export default function MobileBackGestureGuard() {
       const absDy = Math.abs(dy);
 
       // If user swiped inward from either edge and we are on an internal route
-      if (state.isEdgeStart && absDx >= SWIPE_DISTANCE && absDx > absDy * 1.4) {
+      if (state.isEdgeStart && absDx >= SWIPE_DISTANCE && absDx > absDy * 1.5) {
         const currentPath = window.location.pathname;
         if (currentPath !== '/' && currentPath === state.startPathname) {
-          // Wait a tiny tick in case the native OS back gesture already triggered popstate
           setTimeout(() => {
             if (window.location.pathname === state.startPathname && window.location.pathname !== '/') {
               const segments = state.startPathname.split('/').filter(Boolean);
@@ -75,10 +75,10 @@ export default function MobileBackGestureGuard() {
       }
     };
 
-    // Suppress accidental card clicks when starting from screen edge or after a horizontal swipe
+    // Only suppress clicks if an actual horizontal swipe gesture occurred
     const onClickCapture = (e: MouseEvent) => {
       if (!touchState.current) return;
-      if (touchState.current.isEdgeStart || touchState.current.didSwipe) {
+      if (touchState.current.didSwipe) {
         e.stopPropagation();
         e.preventDefault();
         touchState.current = null;

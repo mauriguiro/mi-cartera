@@ -5,6 +5,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { formatAmountInput, numberToFormattedInput, parseAmount } from '@/utils/formatters';
 
 export default function EditReceivablePage() {
   const { receivables, updateReceivable } = useFinance();
@@ -22,19 +23,20 @@ export default function EditReceivablePage() {
     if (rec) {
       setConcept(rec.concept);
       setDebtor(rec.debtor);
-      setAmount(rec.amount.toString());
+      setAmount(numberToFormattedInput(rec.amount));
       setDueDate(rec.dueDate?.split('T')[0] || '');
     }
   }, [id, receivables]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!concept || !debtor || !amount) return;
+    const numericAmount = parseAmount(amount);
+    if (!concept || !debtor || numericAmount <= 0) return;
 
     updateReceivable(id, {
       concept,
       debtor,
-      amount: parseFloat(amount),
+      amount: numericAmount,
       dueDate: dueDate ? new Date(dueDate).toISOString() : undefined
     });
     router.push('/receivables');
@@ -58,7 +60,15 @@ export default function EditReceivablePage() {
         </div>
         <div>
           <label className="block text-sm font-bold text-gray-300 mb-1">Monto a cobrar</label>
-          <input type="number" step="0.01" className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-blue-500 focus:border-blue-500" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+          <input
+            type="text"
+            inputMode="decimal"
+            placeholder="0"
+            className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-blue-500 focus:border-blue-500 font-bold"
+            value={amount}
+            onChange={(e) => setAmount(formatAmountInput(e.target.value))}
+            required
+          />
         </div>
         <div>
           <label className="block text-sm font-bold text-gray-300 mb-1">Fecha de Vencimiento (opcional)</label>
