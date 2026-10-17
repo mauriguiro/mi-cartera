@@ -24,4 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-x: none;
+}
+
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
 }

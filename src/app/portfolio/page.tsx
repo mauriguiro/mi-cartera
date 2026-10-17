@@ -16,6 +16,7 @@ import {
   FileSpreadsheet,
   Landmark,
   StickyNote,
+  GripVertical,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { PortfolioCategory } from '@/types';
@@ -182,14 +183,21 @@ export default function PortfolioPage() {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            {...provided.dragHandleProps}
                             className="border-gray-700 border rounded-lg overflow-hidden bg-gray-800 shadow-sm transition-colors"
                           >
                             <div
                               className="flex items-center justify-between p-3 cursor-pointer"
                               onClick={() => setExpandedId(isExpanded ? null : item.id)}
                             >
-                              <div className="flex flex-1 items-center space-x-2.5 min-w-0 pr-2">
+                              <div className="flex flex-1 items-center space-x-2 min-w-0 pr-2">
+                                <div
+                                  {...provided.dragHandleProps}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-gray-600 hover:text-gray-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                                  title="Mantener para reordenar"
+                                >
+                                  <GripVertical size={15} />
+                                </div>
                                 <span
                                   className={clsx(
                                     'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border shrink-0',

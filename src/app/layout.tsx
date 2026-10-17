@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 import { FinanceProvider } from "@/contexts/FinanceContext";
+import MobileBackGestureGuard from "@/components/MobileBackGestureGuard";
 
 export const metadata: Metadata = {
   title: "MiCartera",
@@ -50,8 +51,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="min-h-full flex flex-col bg-gray-950 text-gray-100">
+      <body className="min-h-full flex flex-col bg-gray-950 text-gray-100 select-none">
         <FinanceProvider>
+          <MobileBackGestureGuard />
           {children}
         </FinanceProvider>
         <script dangerouslySetInnerHTML={{

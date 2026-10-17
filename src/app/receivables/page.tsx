@@ -5,7 +5,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { formatCurrency } from '@/utils/formatters';
 import Link from 'next/link';
-import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit, GripVertical } from 'lucide-react';
 import { format } from 'date-fns';
 import { Receivable } from '@/types';
 import clsx from 'clsx';
@@ -53,14 +53,21 @@ export default function ReceivablesPage() {
                           <div
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            {...provided.dragHandleProps}
                             className="border-gray-700 border rounded-lg overflow-hidden bg-gray-800 shadow-sm transition-colors"
                           >
                             <div 
                               className="flex items-center justify-between p-3 cursor-pointer"
                               onClick={() => setExpandedId(isExpanded ? null : rec.id)}
                             >
-                              <div className="flex flex-1 items-center space-x-3 truncate">
+                              <div className="flex flex-1 items-center space-x-2 truncate">
+                                <div
+                                  {...provided.dragHandleProps}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-gray-600 hover:text-gray-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                                  title="Mantener para reordenar"
+                                >
+                                  <GripVertical size={15} />
+                                </div>
                                 <span className={clsx("text-sm font-bold truncate", rec.isPaid && "line-through text-gray-400")}>
                                   {rec.debtor}
                                 </span>
