@@ -5,7 +5,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { formatCurrency } from '@/utils/formatters';
 import Link from 'next/link';
-import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit, GripVertical, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { Receivable } from '@/types';
 import clsx from 'clsx';
@@ -13,6 +13,7 @@ import clsx from 'clsx';
 export default function ReceivablesPage() {
   const { receivables, reorderReceivables, markReceivableAsPaid, deleteReceivable } = useFinance();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -29,9 +30,26 @@ export default function ReceivablesPage() {
 
   return (
     <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative flex flex-col shadow-sm">
-      <header className="bg-gray-800 text-white px-4 py-3 flex items-center shadow-sm z-10 sticky top-0 border-b border-gray-700">
-        <Link href="/" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
-        <h1 className="text-lg font-bold">A Cobrar (Me deben)</h1>
+      <header className="bg-gray-800 text-white px-4 py-3 flex items-center justify-between shadow-sm z-10 sticky top-0 border-b border-gray-700">
+        <div className="flex items-center">
+          <Link href="/" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
+          <h1 className="text-lg font-bold">A Cobrar (Me deben)</h1>
+        </div>
+        {receivables.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setIsReordering(!isReordering)}
+            className={clsx(
+              "flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border transition-colors",
+              isReordering
+                ? "bg-blue-500/20 border-blue-500 text-blue-300"
+                : "bg-gray-900 border-gray-700 text-gray-400 hover:text-white"
+            )}
+          >
+            <ArrowUpDown size={13} />
+            {isReordering ? 'Listo' : 'Ordenar'}
+          </button>
+        )}
       </header>
 
       <main className="flex-1 p-4 overflow-y-auto pb-24">
@@ -48,7 +66,7 @@ export default function ReceivablesPage() {
                   {receivables.map((rec, index) => {
                     const isExpanded = expandedId === rec.id;
                     return (
-                      <Draggable key={rec.id} draggableId={rec.id} index={index}>
+                      <Draggable key={rec.id} draggableId={rec.id} index={index} isDragDisabled={!isReordering}>
                         {(provided) => (
                           <div
                             ref={provided.innerRef}
@@ -60,14 +78,16 @@ export default function ReceivablesPage() {
                               onClick={() => setExpandedId(isExpanded ? null : rec.id)}
                             >
                               <div className="flex flex-1 items-center space-x-2 truncate">
-                                <div
-                                  {...provided.dragHandleProps}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="text-gray-600 hover:text-gray-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
-                                  title="Mantener para reordenar"
-                                >
-                                  <GripVertical size={15} />
-                                </div>
+                                {isReordering && (
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-blue-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                                    title="Arrastrar para reordenar"
+                                  >
+                                    <GripVertical size={16} />
+                                  </div>
+                                )}
                                 <span className={clsx("text-sm font-bold truncate", rec.isPaid && "line-through text-gray-400")}>
                                   {rec.debtor}
                                 </span>

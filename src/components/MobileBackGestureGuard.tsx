@@ -3,33 +3,68 @@
 import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
+function getParentRoute(pathname: string): string | null {
+  if (!pathname || pathname === '/') return null;
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length <= 1) {
+    return '/';
+  }
+  return `/${segments[0]}`;
+}
+
 export default function MobileBackGestureGuard() {
   const router = useRouter();
   const pathname = usePathname();
   const touchState = useRef<{
     startX: number;
     startY: number;
+    lastX: number;
+    lastY: number;
     isEdgeStart: boolean;
     didSwipe: boolean;
+    navigated: boolean;
     startPathname: string;
   } | null>(null);
 
   useEffect(() => {
-    const EDGE_THRESHOLD = 28; // px from left or right screen edge
-    const SWIPE_DISTANCE = 55; // px horizontal movement
+    const EDGE_ZONE = 110; // generous left/right zone to account for phone cases and curved edges
+    const MIN_SWIPE_X = 35; // minimum horizontal distance in px to trigger back
+
+    const triggerBackIfNeeded = (state: NonNullable<typeof touchState.current>) => {
+      if (state.navigated) return;
+      const dx = state.lastX - state.startX;
+      const dy = state.lastY - state.startY;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      const screenWidth = window.innerWidth;
+      const isLeftEdgeSwipeRight = state.startX <= EDGE_ZONE && dx >= MIN_SWIPE_X;
+      const isRightEdgeSwipeLeft = state.startX >= screenWidth - EDGE_ZONE && dx <= -MIN_SWIPE_X;
+
+      if ((isLeftEdgeSwipeRight || isRightEdgeSwipeLeft) && absDx > absDy * 1.25) {
+        const parentRoute = getParentRoute(state.startPathname);
+        if (parentRoute) {
+          state.navigated = true;
+          router.replace(parentRoute);
+        }
+      }
+    };
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
       const touch = e.touches[0];
       const screenWidth = window.innerWidth;
       const isEdgeStart =
-        touch.clientX <= EDGE_THRESHOLD || touch.clientX >= screenWidth - EDGE_THRESHOLD;
+        touch.clientX <= EDGE_ZONE || touch.clientX >= screenWidth - EDGE_ZONE;
 
       touchState.current = {
         startX: touch.clientX,
         startY: touch.clientY,
+        lastX: touch.clientX,
+        lastY: touch.clientY,
         isEdgeStart,
         didSwipe: false,
+        navigated: false,
         startPathname: window.location.pathname,
       };
     };
@@ -37,48 +72,36 @@ export default function MobileBackGestureGuard() {
     const onTouchMove = (e: TouchEvent) => {
       if (!touchState.current || e.touches.length !== 1) return;
       const touch = e.touches[0];
-      const dx = touch.clientX - touchState.current.startX;
-      const dy = touch.clientY - touchState.current.startY;
+      const state = touchState.current;
+      state.lastX = touch.clientX;
+      state.lastY = touch.clientY;
 
-      // Only mark as swipe if there is a clear horizontal movement
-      if (Math.abs(dx) > 25 && Math.abs(dx) > Math.abs(dy) * 1.3) {
-        touchState.current.didSwipe = true;
+      const dx = state.lastX - state.startX;
+      const dy = state.lastY - state.startY;
+
+      if (Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+        state.didSwipe = true;
+      }
+
+      // If user already completed a clear inward swipe from the edge, navigate immediately
+      if (state.isEdgeStart && Math.abs(dx) >= 65 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+        triggerBackIfNeeded(state);
       }
     };
 
-    const onTouchEnd = (e: TouchEvent) => {
+    const onTouchEndOrCancel = (e: TouchEvent) => {
       if (!touchState.current) return;
       const state = touchState.current;
-      const changedTouch = e.changedTouches[0];
-      if (!changedTouch) return;
-
-      const dx = changedTouch.clientX - state.startX;
-      const dy = changedTouch.clientY - state.startY;
-      const absDx = Math.abs(dx);
-      const absDy = Math.abs(dy);
-
-      // If user swiped inward from either edge and we are on an internal route
-      if (state.isEdgeStart && absDx >= SWIPE_DISTANCE && absDx > absDy * 1.5) {
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/' && currentPath === state.startPathname) {
-          setTimeout(() => {
-            if (window.location.pathname === state.startPathname && window.location.pathname !== '/') {
-              const segments = state.startPathname.split('/').filter(Boolean);
-              if (segments.length > 1) {
-                router.replace(`/${segments[0]}`);
-              } else {
-                router.replace('/');
-              }
-            }
-          }, 80);
-        }
+      if (e.changedTouches && e.changedTouches.length > 0) {
+        state.lastX = e.changedTouches[0].clientX;
+        state.lastY = e.changedTouches[0].clientY;
       }
+      triggerBackIfNeeded(state);
     };
 
-    // Only suppress clicks if an actual horizontal swipe gesture occurred
     const onClickCapture = (e: MouseEvent) => {
       if (!touchState.current) return;
-      if (touchState.current.didSwipe) {
+      if (touchState.current.didSwipe || touchState.current.navigated) {
         e.stopPropagation();
         e.preventDefault();
         touchState.current = null;
@@ -87,13 +110,15 @@ export default function MobileBackGestureGuard() {
 
     window.addEventListener('touchstart', onTouchStart, { capture: true, passive: true });
     window.addEventListener('touchmove', onTouchMove, { capture: true, passive: true });
-    window.addEventListener('touchend', onTouchEnd, { capture: true, passive: true });
+    window.addEventListener('touchend', onTouchEndOrCancel, { capture: true, passive: true });
+    window.addEventListener('touchcancel', onTouchEndOrCancel, { capture: true, passive: true });
     window.addEventListener('click', onClickCapture, { capture: true });
 
     return () => {
       window.removeEventListener('touchstart', onTouchStart, { capture: true });
       window.removeEventListener('touchmove', onTouchMove, { capture: true });
-      window.removeEventListener('touchend', onTouchEnd, { capture: true });
+      window.removeEventListener('touchend', onTouchEndOrCancel, { capture: true });
+      window.removeEventListener('touchcancel', onTouchEndOrCancel, { capture: true });
       window.removeEventListener('click', onClickCapture, { capture: true });
     };
   }, [pathname, router]);

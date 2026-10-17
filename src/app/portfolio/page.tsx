@@ -17,6 +17,7 @@ import {
   Landmark,
   StickyNote,
   GripVertical,
+  ArrowUpDown,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { PortfolioCategory } from '@/types';
@@ -47,6 +48,7 @@ export default function PortfolioPage() {
   const { portfolio, totalPortfolio, reorderPortfolio, deletePortfolioItem } = useFinance();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<'todos' | PortfolioCategory>('todos');
+  const [isReordering, setIsReordering] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   React.useEffect(() => {
@@ -82,9 +84,26 @@ export default function PortfolioPage() {
           <Link href="/" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors">
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-lg font-bold">En Cartera (Disponible)</h1>
+          <div>
+            <h1 className="text-base font-bold leading-tight">En Cartera</h1>
+            <p className="text-xs font-black text-emerald-400">{formatCurrency(totalPortfolio)}</p>
+          </div>
         </div>
-        <span className="text-sm font-black text-emerald-400">{formatCurrency(totalPortfolio)}</span>
+        {portfolio.length > 1 && filterCategory === 'todos' && (
+          <button
+            type="button"
+            onClick={() => setIsReordering(!isReordering)}
+            className={clsx(
+              "flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border transition-colors",
+              isReordering
+                ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
+                : "bg-gray-900 border-gray-700 text-gray-400 hover:text-white"
+            )}
+          >
+            <ArrowUpDown size={13} />
+            {isReordering ? 'Listo' : 'Ordenar'}
+          </button>
+        )}
       </header>
 
       <main className="flex-1 p-4 overflow-y-auto pb-24">
@@ -177,7 +196,7 @@ export default function PortfolioPage() {
                         key={item.id}
                         draggableId={item.id}
                         index={index}
-                        isDragDisabled={filterCategory !== 'todos'}
+                        isDragDisabled={!isReordering || filterCategory !== 'todos'}
                       >
                         {(provided) => (
                           <div
@@ -190,14 +209,16 @@ export default function PortfolioPage() {
                               onClick={() => setExpandedId(isExpanded ? null : item.id)}
                             >
                               <div className="flex flex-1 items-center space-x-2 min-w-0 pr-2">
-                                <div
-                                  {...provided.dragHandleProps}
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="text-gray-600 hover:text-gray-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
-                                  title="Mantener para reordenar"
-                                >
-                                  <GripVertical size={15} />
-                                </div>
+                                {isReordering && filterCategory === 'todos' && (
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-emerald-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                                    title="Arrastrar para reordenar"
+                                  >
+                                    <GripVertical size={16} />
+                                  </div>
+                                )}
                                 <span
                                   className={clsx(
                                     'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border shrink-0',

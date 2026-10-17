@@ -5,7 +5,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { formatCurrency } from '@/utils/formatters';
 import Link from 'next/link';
-import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit, CreditCard, Share2, FileDown, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit, CreditCard, Share2, FileDown, GripVertical, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { Debt } from '@/types';
 import { generateAndShareDebtPDF } from '@/utils/pdfReport';
@@ -14,6 +14,7 @@ import clsx from 'clsx';
 export default function DebtsPage() {
   const { debts, reorderDebts, toggleDebtPaid, deleteDebt } = useFinance();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isReordering, setIsReordering] = useState(false);
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -34,9 +35,26 @@ export default function DebtsPage() {
 
   return (
     <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative flex flex-col shadow-sm">
-      <header className="bg-gray-800 text-white px-4 py-3 flex items-center shadow-sm z-10 sticky top-0 border-b border-gray-700">
-        <Link href="/" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
-        <h1 className="text-lg font-bold">A Pagar (Deudas)</h1>
+      <header className="bg-gray-800 text-white px-4 py-3 flex items-center justify-between shadow-sm z-10 sticky top-0 border-b border-gray-700">
+        <div className="flex items-center">
+          <Link href="/" className="mr-3 p-1 hover:bg-gray-700 rounded-full transition-colors"><ArrowLeft size={20} /></Link>
+          <h1 className="text-lg font-bold">A Pagar (Deudas)</h1>
+        </div>
+        {debts.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setIsReordering(!isReordering)}
+            className={clsx(
+              "flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-lg border transition-colors",
+              isReordering
+                ? "bg-red-500/20 border-red-500 text-red-300"
+                : "bg-gray-900 border-gray-700 text-gray-400 hover:text-white"
+            )}
+          >
+            <ArrowUpDown size={13} />
+            {isReordering ? 'Listo' : 'Ordenar'}
+          </button>
+        )}
       </header>
 
       <main className="flex-1 p-4 overflow-y-auto pb-24">
@@ -65,7 +83,7 @@ export default function DebtsPage() {
                         {fixedDebts.map((debt, index) => {
                           const isExpanded = expandedId === debt.id;
                           return (
-                            <Draggable key={debt.id} draggableId={debt.id} index={index}>
+                            <Draggable key={debt.id} draggableId={debt.id} index={index} isDragDisabled={!isReordering}>
                               {(provided) => (
                                 <div
                                   ref={provided.innerRef}
@@ -80,14 +98,16 @@ export default function DebtsPage() {
                                     onClick={() => setExpandedId(isExpanded ? null : debt.id)}
                                   >
                                     <div className="flex flex-1 items-center space-x-2 truncate">
-                                      <div
-                                        {...provided.dragHandleProps}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="text-gray-600 hover:text-gray-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
-                                        title="Mantener para reordenar"
-                                      >
-                                        <GripVertical size={15} />
-                                      </div>
+                                      {isReordering && (
+                                        <div
+                                          {...provided.dragHandleProps}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="text-red-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                                          title="Arrastrar para reordenar"
+                                        >
+                                          <GripVertical size={16} />
+                                        </div>
+                                      )}
                                       <span className={clsx("text-sm font-bold truncate", debt.isPaid && "line-through text-gray-400")}>
                                         {debt.concept}
                                       </span>
@@ -185,7 +205,7 @@ export default function DebtsPage() {
                           let runningBalance = debt.originalAmount;
 
                           return (
-                            <Draggable key={debt.id} draggableId={debt.id} index={index}>
+                            <Draggable key={debt.id} draggableId={debt.id} index={index} isDragDisabled={!isReordering}>
                               {(provided) => (
                                 <div
                                   ref={provided.innerRef}
@@ -200,14 +220,16 @@ export default function DebtsPage() {
                                     onClick={() => setExpandedId(isExpanded ? null : debt.id)}
                                   >
                                     <div className="flex flex-1 items-center space-x-2 truncate">
-                                      <div
-                                        {...provided.dragHandleProps}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="text-gray-600 hover:text-gray-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
-                                        title="Mantener para reordenar"
-                                      >
-                                        <GripVertical size={15} />
-                                      </div>
+                                      {isReordering && (
+                                        <div
+                                          {...provided.dragHandleProps}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="text-red-400 p-1 -ml-1 cursor-grab active:cursor-grabbing shrink-0"
+                                          title="Arrastrar para reordenar"
+                                        >
+                                          <GripVertical size={16} />
+                                        </div>
+                                      )}
                                       <span className={clsx("text-sm font-bold truncate", debt.isPaid && "line-through text-gray-400")}>
                                         {debt.concept}
                                       </span>
