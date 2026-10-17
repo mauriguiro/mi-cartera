@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { useFinance } from '@/contexts/FinanceContext';
 import { formatCurrency } from '@/utils/formatters';
-import { Wallet, CreditCard, ChevronRight } from 'lucide-react';
+import { Wallet, CreditCard, Banknote, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 
 import Image from 'next/image';
 
 export default function DashboardScreen() {
-  const { netBalance, totalReceivables, totalDebt } = useFinance();
+  const { netBalance, totalReceivables, totalDebt, totalPortfolio } = useFinance();
 
   return (
     <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative shadow-sm flex flex-col">
@@ -33,6 +33,19 @@ export default function DashboardScreen() {
 
         {/* Accesos */}
         <div className="space-y-4">
+          <Link href="/portfolio" className="block">
+            <div className="p-4 bg-gray-800 border border-gray-700 rounded-2xl shadow-sm flex items-center hover:bg-gray-750 transition-colors">
+              <div className="p-3 bg-emerald-500/20 rounded-full shadow-inner mr-4">
+                <Banknote className="text-emerald-400" size={24} />
+              </div>
+              <div className="flex-1">
+                <h2 className="text-sm font-bold text-gray-300 tracking-wide">En Cartera</h2>
+                <p className="text-2xl font-black text-emerald-400 mt-1">{formatCurrency(totalPortfolio)}</p>
+              </div>
+              <ChevronRight className="text-gray-600" />
+            </div>
+          </Link>
+
           <Link href="/receivables" className="block">
             <div className="p-4 bg-gray-800 border border-gray-700 rounded-2xl shadow-sm flex items-center hover:bg-gray-750 transition-colors">
               <div className="p-3 bg-blue-500/20 rounded-full shadow-inner mr-4">
@@ -60,6 +73,10 @@ export default function DashboardScreen() {
           </Link>
         </div>
       </main>
+
+      <footer className="mt-auto py-4 text-center">
+        <span className="text-[11px] font-medium text-gray-600">MiCartera v0.2.0</span>
+      </footer>
     </div>
   );
 }

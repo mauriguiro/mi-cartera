@@ -5,9 +5,10 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { formatCurrency } from '@/utils/formatters';
 import Link from 'next/link';
-import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit, CreditCard } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit, CreditCard, Share2, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { Debt } from '@/types';
+import { generateAndShareDebtPDF } from '@/utils/pdfReport';
 import clsx from 'clsx';
 
 export default function DebtsPage() {
@@ -91,7 +92,7 @@ export default function DebtsPage() {
                                       {debt.isFixed && (
                                         <input
                                           type="checkbox"
-                                          className="appearance-none w-5 h-5 bg-gray-900 border-2 border-gray-600 rounded flex items-center justify-center checked:bg-red-500 checked:border-red-500 cursor-pointer relative after:content-['✓'] after:text-white after:text-xs after:font-bold after:hidden checked:after:block transition-colors"
+                                          className="appearance-none w-5 h-5 bg-gray-900 border-2 border-gray-600 rounded flex items-center justify-center checked:bg-gray-700 checked:border-gray-500 cursor-pointer relative after:content-['✓'] after:text-gray-300 after:text-xs after:font-bold after:hidden checked:after:block transition-colors"
                                           checked={debt.isPaid}
                                           onClick={(e) => e.stopPropagation()}
                                           onChange={(e) => toggleDebtPaid(debt.id, e.target.checked)}
@@ -158,13 +159,24 @@ export default function DebtsPage() {
 
             {occasionalDebts.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-lg font-black text-white uppercase tracking-widest mb-4 px-1 text-center">Ocasionales</h3>
+                <div className="flex justify-between items-end mb-4 px-2">
+                  <h3 className="text-lg font-black text-white uppercase tracking-widest">Ocasionales</h3>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400">Total restante</p>
+                    <p className="text-sm font-bold text-red-400">
+                      {formatCurrency(occasionalDebts.filter(d => !d.isPaid).reduce((acc, d) => acc + (d.remainingAmount !== undefined ? d.remainingAmount : d.originalAmount), 0))}
+                    </p>
+                  </div>
+                </div>
                 <DragDropContext onDragEnd={(res) => onDragEnd(res, false)}>
                   <Droppable droppableId="droppable-occasional">
                     {(provided) => (
                       <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
                         {occasionalDebts.map((debt, index) => {
                           const isExpanded = expandedId === debt.id;
+                          const totalPaid = debt.payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                          let runningBalance = debt.originalAmount;
+
                           return (
                             <Draggable key={debt.id} draggableId={debt.id} index={index}>
                               {(provided) => (
@@ -193,7 +205,7 @@ export default function DebtsPage() {
                                       {debt.isFixed && (
                                         <input
                                           type="checkbox"
-                                          className="appearance-none w-5 h-5 bg-gray-900 border-2 border-gray-600 rounded flex items-center justify-center checked:bg-red-500 checked:border-red-500 cursor-pointer relative after:content-['✓'] after:text-white after:text-xs after:font-bold after:hidden checked:after:block transition-colors"
+                                          className="appearance-none w-5 h-5 bg-gray-900 border-2 border-gray-600 rounded flex items-center justify-center checked:bg-gray-700 checked:border-gray-500 cursor-pointer relative after:content-['✓'] after:text-gray-300 after:text-xs after:font-bold after:hidden checked:after:block transition-colors"
                                           checked={debt.isPaid}
                                           onClick={(e) => e.stopPropagation()}
                                           onChange={(e) => toggleDebtPaid(debt.id, e.target.checked)}
@@ -207,41 +219,81 @@ export default function DebtsPage() {
                                     <div className="p-4 bg-gray-950 border-t border-gray-800 text-sm">
                                       <p className="text-gray-300 mb-1"><strong>Acreedor:</strong> {debt.creditor}</p>
                                       {!debt.isFixed && (
-                                        <p className="text-gray-300 mb-1"><strong>Monto Original:</strong> {formatCurrency(debt.originalAmount)}</p>
+                                        <>
+                                          <p className="text-gray-300 mb-1"><strong>Monto Original:</strong> {formatCurrency(debt.originalAmount)}</p>
+                                          <p className="text-gray-300 mb-1">
+                                            <strong>Total Entregado:</strong>{' '}
+                                            <span className="text-green-400 font-bold">{formatCurrency(totalPaid)}</span>
+                                          </p>
+                                          <p className="text-gray-300 mb-1">
+                                            <strong>Saldo Restante:</strong>{' '}
+                                            <span className="text-red-400 font-bold">{formatCurrency(debt.remainingAmount)}</span>
+                                          </p>
+                                        </>
                                       )}
                                       <p className="text-gray-300 mb-3"><strong>Creado el:</strong> {format(new Date(debt.createdAt), 'dd/MM/yyyy')}</p>
                                       
                                       {!debt.isFixed && (
                                         <>
                                           <div className="h-px bg-gray-700 my-3" />
-                                          <p className="font-bold mb-2">Historial de Pagos:</p>
+                                          <p className="font-bold mb-2">Historial de Entregas ({debt.payments.length}):</p>
                                           {debt.payments.length === 0 ? (
-                                            <p className="text-gray-500 text-xs italic">No hay pagos registrados aún.</p>
+                                            <p className="text-gray-500 text-xs italic">No hay entregas registradas aún.</p>
                                           ) : (
-                                            <ul className="space-y-1">
-                                              {debt.payments.map(p => (
-                                                <li key={p.id} className="flex justify-between text-xs">
-                                                  <span>{format(new Date(p.date), 'dd/MM/yyyy')}</span>
-                                                  <span className="text-green-600 font-bold">-{formatCurrency(p.amount)}</span>
-                                                </li>
-                                              ))}
+                                            <ul className="space-y-1.5">
+                                              {debt.payments.map((p, idx) => {
+                                                runningBalance = Math.max(0, runningBalance - (Number(p.amount) || 0));
+                                                return (
+                                                  <li key={p.id} className="flex justify-between items-center text-xs bg-gray-900/80 px-2.5 py-1.5 rounded border border-gray-800">
+                                                    <div>
+                                                      <span className="font-semibold text-gray-300">#{idx + 1}</span>{' '}
+                                                      <span className="text-gray-400">{format(new Date(p.date), 'dd/MM/yyyy')}</span>
+                                                    </div>
+                                                    <div className="text-right">
+                                                      <span className="text-green-400 font-bold">-{formatCurrency(p.amount)}</span>
+                                                      <span className="text-gray-500 ml-2">(Resta: {formatCurrency(runningBalance)})</span>
+                                                    </div>
+                                                  </li>
+                                                );
+                                              })}
                                             </ul>
                                           )}
                                         </>
                                       )}
 
-                                      <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-700">
-                                        {!debt.isFixed && !debt.isPaid && (
-                                          <Link href={`/debts/${debt.id}/pay`} className="flex items-center text-blue-400 text-xs font-bold px-2 py-1 bg-blue-900/30 rounded hover:bg-blue-900/50">
-                                            <CreditCard size={14} className="mr-1" /> Abonar
+                                      <div className="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t border-gray-700">
+                                        <div className="flex items-center gap-2">
+                                          <button
+                                            type="button"
+                                            onClick={() => generateAndShareDebtPDF(debt, 'share')}
+                                            className="flex items-center text-emerald-400 text-xs font-bold px-2.5 py-1.5 bg-emerald-900/30 border border-emerald-800/50 rounded hover:bg-emerald-900/50 transition-colors"
+                                            title="Compartir o descargar reporte en PDF"
+                                          >
+                                            <Share2 size={14} className="mr-1.5" /> Compartir PDF
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => generateAndShareDebtPDF(debt, 'download')}
+                                            className="flex items-center text-gray-300 text-xs font-semibold px-2 py-1.5 bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 transition-colors"
+                                            title="Descargar archivo PDF"
+                                          >
+                                            <FileDown size={14} />
+                                          </button>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                          {!debt.isFixed && !debt.isPaid && (
+                                            <Link href={`/debts/${debt.id}/pay`} className="flex items-center text-blue-400 text-xs font-bold px-2.5 py-1.5 bg-blue-900/30 rounded hover:bg-blue-900/50">
+                                              <CreditCard size={14} className="mr-1" /> Abonar
+                                            </Link>
+                                          )}
+                                          <Link href={`/debts/edit/${debt.id}`} className="text-orange-400 p-1.5 hover:bg-orange-900/30 rounded">
+                                            <Edit size={16} />
                                           </Link>
-                                        )}
-                                        <Link href={`/debts/edit/${debt.id}`} className="text-orange-400 p-1 hover:bg-orange-900/30 rounded">
-                                          <Edit size={16} />
-                                        </Link>
-                                        <button onClick={() => deleteDebt(debt.id)} className="text-red-400 p-1 hover:bg-red-900/30 rounded">
-                                          <Trash2 size={16} />
-                                        </button>
+                                          <button onClick={() => deleteDebt(debt.id)} className="text-red-400 p-1.5 hover:bg-red-900/30 rounded">
+                                            <Trash2 size={16} />
+                                          </button>
+                                        </div>
                                       </div>
                                     </div>
                                   )}

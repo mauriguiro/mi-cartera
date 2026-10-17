@@ -3,14 +3,16 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Debt, Receivable, Payment } from '@/types';
+import { Debt, Receivable, Payment, PortfolioItem } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface FinanceContextType {
   debts: Debt[];
   receivables: Receivable[];
+  portfolio: PortfolioItem[];
   totalDebt: number;
   totalReceivables: number;
+  totalPortfolio: number;
   netBalance: number;
   addDebt: (debt: Omit<Debt, 'id' | 'payments' | 'createdAt' | 'remainingAmount' | 'isPaid' | 'orderIndex'>) => void;
   updateDebt: (id: string, updates: Partial<Debt>) => void;
@@ -23,6 +25,10 @@ interface FinanceContextType {
   markReceivableAsPaid: (id: string, paid: boolean) => void;
   deleteReceivable: (id: string) => void;
   reorderReceivables: (sourceIndex: number, destinationIndex: number, list: Receivable[]) => void;
+  addPortfolioItem: (item: Omit<PortfolioItem, 'id' | 'createdAt' | 'orderIndex'>) => void;
+  updatePortfolioItem: (id: string, updates: Partial<PortfolioItem>) => void;
+  deletePortfolioItem: (id: string) => void;
+  reorderPortfolio: (sourceIndex: number, destinationIndex: number, list: PortfolioItem[]) => void;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -30,6 +36,7 @@ const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 export const FinanceProvider = ({ children }: { children: React.ReactNode }) => {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [receivables, setReceivables] = useState<Receivable[]>([]);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
 
   const checkMonthlyReset = (currentDebts: Debt[]) => {
     if (typeof window === 'undefined') return;
@@ -123,9 +130,30 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
       }
     );
 
+    const unsubPortfolio = onSnapshot(
+      collection(db, 'portfolio'),
+      (snapshot) => {
+        const data = snapshot.docs.map((docSnap) => {
+          const raw = { id: docSnap.id, ...docSnap.data() } as PortfolioItem;
+          return {
+            ...raw,
+            amount: Number(raw.amount) || 0,
+            notes: raw.notes || '',
+            category: raw.category || 'efectivo',
+          };
+        });
+        data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        setPortfolio(data);
+      },
+      (error) => {
+        console.error("Error cargando cartera de Firestore:", error);
+      }
+    );
+
     return () => {
       unsubDebts();
       unsubReceivables();
+      unsubPortfolio();
     };
   }, []);
 
@@ -137,6 +165,7 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   }, 0);
 
   const totalReceivables = receivables.filter(r => !r.isPaid).reduce((sum, r) => sum + (r.amount || 0), 0);
+  const totalPortfolio = portfolio.reduce((sum, item) => sum + (item.amount || 0), 0);
   const netBalance = totalReceivables - totalDebt;
 
   // Debts Methods
@@ -252,11 +281,41 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
     await batch.commit();
   };
 
+  // Portfolio (En Cartera / Disponibilidad) Methods
+  const addPortfolioItem = (data: Omit<PortfolioItem, 'id' | 'createdAt' | 'orderIndex'>) => {
+    const newItem: PortfolioItem = {
+      ...data,
+      id: uuidv4(),
+      createdAt: new Date().toISOString(),
+      orderIndex: portfolio.length,
+    };
+    setDoc(doc(db, 'portfolio', newItem.id), newItem);
+  };
+
+  const updatePortfolioItem = (id: string, updates: Partial<PortfolioItem>) => {
+    updateDoc(doc(db, 'portfolio', id), updates);
+  };
+
+  const deletePortfolioItem = (id: string) => deleteDoc(doc(db, 'portfolio', id));
+
+  const reorderPortfolio = async (sourceIndex: number, destinationIndex: number, list: PortfolioItem[]) => {
+    const newList = Array.from(list);
+    const [removed] = newList.splice(sourceIndex, 1);
+    newList.splice(destinationIndex, 0, removed);
+
+    const batch = writeBatch(db);
+    newList.forEach((item, index) => {
+      batch.update(doc(db, 'portfolio', item.id), { orderIndex: index });
+    });
+    await batch.commit();
+  };
+
   return (
     <FinanceContext.Provider value={{
-      debts, receivables, totalDebt, totalReceivables, netBalance,
+      debts, receivables, portfolio, totalDebt, totalReceivables, totalPortfolio, netBalance,
       addDebt, updateDebt, toggleDebtPaid, payDebt, deleteDebt, reorderDebts,
-      addReceivable, updateReceivable, markReceivableAsPaid, deleteReceivable, reorderReceivables
+      addReceivable, updateReceivable, markReceivableAsPaid, deleteReceivable, reorderReceivables,
+      addPortfolioItem, updatePortfolioItem, deletePortfolioItem, reorderPortfolio
     }}>
       {children}
     </FinanceContext.Provider>

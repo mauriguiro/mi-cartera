@@ -28,3 +28,16 @@ export interface Receivable {
   isPaid: boolean;
   orderIndex: number;
 }
+
+export type PortfolioCategory = 'efectivo' | 'cheque' | 'cuenta';
+
+export interface PortfolioItem {
+  id: string;
+  category: PortfolioCategory;
+  title: string;
+  amount: number;
+  notes: string;
+  createdAt: string;
+  orderIndex: number;
+}
+
