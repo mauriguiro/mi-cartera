@@ -27,9 +27,8 @@ interface FinanceContextType {
     password: string;
   }) => Promise<{ ok: boolean; error?: string }>;
   verifyEmailForReset: (
-    username: string,
     email: string
-  ) => Promise<{ ok: boolean; userId?: string; error?: string }>;
+  ) => Promise<{ ok: boolean; userId?: string; username?: string; fullName?: string; error?: string }>;
   resetPasswordByEmail: (
     userId: string,
     newPassword: string
@@ -401,35 +400,38 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const verifyEmailForReset = async (
-    username: string,
     email: string
-  ): Promise<{ ok: boolean; userId?: string; error?: string }> => {
+  ): Promise<{ ok: boolean; userId?: string; username?: string; fullName?: string; error?: string }> => {
     try {
-      const cleanUsername = username.trim().toLowerCase();
       const cleanEmail = email.trim().toLowerCase().replace(',', '.');
       const snap = await getDocs(collection(db, 'users'));
 
-      let foundId: string | undefined;
+      let foundUser: UserProfile | undefined;
       snap.forEach((docSnap) => {
         const u = docSnap.data() as UserProfile;
         const uname = (u.username || docSnap.id).toLowerCase();
         const uemail = (u.email || '').toLowerCase().replace(',', '.');
-        if (uname === cleanUsername && uemail === cleanEmail) {
-          foundId = docSnap.id;
+        if (uemail === cleanEmail) {
+          foundUser = { ...u, id: docSnap.id, username: uname };
         }
       });
 
-      if (!foundId) {
+      if (!foundUser) {
         return {
           ok: false,
-          error: 'El usuario y correo electrónico no coinciden con ninguna cuenta registrada.',
+          error: 'No existe ninguna cuenta registrada con ese correo electrónico.',
         };
       }
 
-      return { ok: true, userId: foundId };
+      return {
+        ok: true,
+        userId: foundUser.id,
+        username: foundUser.username,
+        fullName: foundUser.fullName,
+      };
     } catch (err) {
       console.error('Error verificando correo:', err);
-      return { ok: false, error: 'Error al verificar los datos.' };
+      return { ok: false, error: 'Error al verificar el correo.' };
     }
   };
 

@@ -31,9 +31,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Recover / Verify by Email fields
-  const [recoverUsername, setRecoverUsername] = useState('');
   const [recoverEmail, setRecoverEmail] = useState('');
   const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
+  const [recoveredUsername, setRecoveredUsername] = useState('');
+  const [recoveredFullName, setRecoveredFullName] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
@@ -57,6 +58,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     setError('');
     setSuccessMsg('');
     setVerifiedUserId(null);
+    setRecoveredUsername('');
+    setRecoveredFullName('');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -113,7 +116,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     setError('');
     setSuccessMsg('');
     setSubmitting(true);
-    const res = await verifyEmailForReset(recoverUsername, recoverEmail);
+    const res = await verifyEmailForReset(recoverEmail);
     setSubmitting(false);
 
     if (!res.ok || !res.userId) {
@@ -122,7 +125,9 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     }
 
     setVerifiedUserId(res.userId);
-    setSuccessMsg('Correo verificado correctamente. Ingresá tu nueva contraseña.');
+    setRecoveredUsername(res.username || res.userId);
+    setRecoveredFullName(res.fullName || '');
+    setSuccessMsg('Cuenta encontrada y verificada por correo.');
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -166,7 +171,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           <p className="text-xs text-gray-400 mt-1">
             {mode === 'login' && 'Ingresá con tu usuario y contraseña'}
             {mode === 'register' && 'Creá tu cuenta personal única'}
-            {mode === 'recover' && 'Verificación por correo electrónico'}
+            {mode === 'recover' && 'Recuperar usuario o contraseña por correo'}
           </p>
         </div>
 
@@ -273,7 +278,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                   onClick={() => switchMode('recover')}
                   className="text-xs text-emerald-400 hover:underline font-medium"
                 >
-                  ¿Olvidaste tu contraseña? Verificar por correo
+                  ¿Olvidaste tu usuario o contraseña? Recuperar por correo
                 </button>
               </div>
             </form>
@@ -394,31 +399,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             </form>
           )}
 
-          {/* RECOVER / VERIFY BY EMAIL FORM */}
+          {/* RECOVER USERNAME & PASSWORD BY EMAIL FORM */}
           {mode === 'recover' && (
             <div>
               {!verifiedUserId ? (
                 <form onSubmit={handleVerifyEmail} className="space-y-4">
                   <p className="text-xs text-gray-400 leading-relaxed">
-                    Ingresá tu nombre de usuario y el correo electrónico registrado para verificar tu cuenta y actualizar tu contraseña.
+                    Ingresá el correo electrónico con el que te registraste para recuperar tu <strong>nombre de usuario</strong> y/o cambiar tu <strong>contraseña</strong>.
                   </p>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-300 mb-1">
-                      Nombre de usuario
-                    </label>
-                    <div className="relative">
-                      <User size={16} className="absolute left-3 top-3 text-gray-500" />
-                      <input
-                        type="text"
-                        placeholder="Ej: mauri"
-                        autoCapitalize="none"
-                        className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
-                        value={recoverUsername}
-                        onChange={(e) => setRecoverUsername(e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
 
                   <div>
                     <label className="block text-xs font-bold text-gray-300 mb-1">
@@ -443,67 +431,96 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                     disabled={submitting}
                     className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-500 transition-colors shadow-md disabled:opacity-50 text-sm"
                   >
-                    {submitting ? 'Verificando...' : 'Verificar Correo'}
+                    {submitting ? 'Buscando cuenta...' : 'Recuperar por Correo'}
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleResetPassword} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-300 mb-1">
-                      Nueva contraseña <span className="text-gray-500 font-normal">(más de 5 caracteres, letras y números)</span>
-                    </label>
-                    <div className="relative">
-                      <Lock size={16} className="absolute left-3 top-3 text-gray-500" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Mínimo 6 caracteres"
-                        className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl pl-9 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-200 p-0.5"
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
+                <div className="space-y-4">
+                  {/* Recovered Username Box */}
+                  <div className="p-4 rounded-xl bg-gray-800 border border-emerald-700/60 text-center">
+                    {recoveredFullName && (
+                      <p className="text-xs text-gray-400 mb-1">Titular: <strong className="text-gray-200">{recoveredFullName}</strong></p>
+                    )}
+                    <p className="text-xs text-gray-400">Tu nombre de usuario es:</p>
+                    <p className="text-xl font-black text-emerald-400 mt-1 tracking-wide">{recoveredUsername}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginUser(recoveredUsername);
+                        switchMode('login');
+                      }}
+                      className="mt-3 w-full py-2 px-3 rounded-lg bg-emerald-950/80 border border-emerald-700/70 text-emerald-300 text-xs font-bold hover:bg-emerald-900/60 transition-colors"
+                    >
+                      Usar usuario &ldquo;{recoveredUsername}&rdquo; para iniciar sesión
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-gray-300 mb-1">
-                      Repetir nueva contraseña
-                    </label>
-                    <div className="relative">
-                      <KeyRound size={16} className="absolute left-3 top-3 text-gray-500" />
-                      <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        placeholder="Repetí la nueva contraseña"
-                        className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl pl-9 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
-                        value={confirmNewPassword}
-                        onChange={(e) => setConfirmNewPassword(e.target.value)}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-200 p-0.5"
-                      >
-                        {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-gray-800"></div>
+                    <span className="flex-shrink mx-3 text-[11px] text-gray-500 uppercase font-bold">
+                      O cambiá tu contraseña
+                    </span>
+                    <div className="flex-grow border-t border-gray-800"></div>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-500 transition-colors shadow-md disabled:opacity-50 text-sm"
-                  >
-                    {submitting ? 'Guardando...' : 'Guardar y Entrar'}
-                  </button>
-                </form>
+                  <form onSubmit={handleResetPassword} className="space-y-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">
+                        Nueva contraseña <span className="text-gray-500 font-normal">(más de 5 caracteres, letras y números)</span>
+                      </label>
+                      <div className="relative">
+                        <Lock size={16} className="absolute left-3 top-3 text-gray-500" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Mínimo 6 caracteres"
+                          className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl pl-9 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-200 p-0.5"
+                        >
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-gray-300 mb-1">
+                        Repetir nueva contraseña
+                      </label>
+                      <div className="relative">
+                        <KeyRound size={16} className="absolute left-3 top-3 text-gray-500" />
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder="Repetí la nueva contraseña"
+                          className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl pl-9 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                          value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-200 p-0.5"
+                        >
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-500 transition-colors shadow-md disabled:opacity-50 text-sm"
+                    >
+                      {submitting ? 'Guardando...' : 'Guardar Nueva Contraseña y Entrar'}
+                    </button>
+                  </form>
+                </div>
               )}
 
               <div className="mt-4 text-center">
