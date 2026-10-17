@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 
 import { FinanceProvider } from "@/contexts/FinanceContext";
 import MobileBackGestureGuard from "@/components/MobileBackGestureGuard";
+import AuthGate from "@/components/AuthGate";
 
 export const metadata: Metadata = {
   title: "MiCartera",
@@ -54,7 +55,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full flex flex-col bg-gray-950 text-gray-100 select-none">
         <FinanceProvider>
           <MobileBackGestureGuard />
-          {children}
+          <AuthGate>
+            {children}
+          </AuthGate>
         </FinanceProvider>
         <script dangerouslySetInnerHTML={{
           __html: `

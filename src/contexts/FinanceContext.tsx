@@ -1,12 +1,40 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import {
+  collection,
+  onSnapshot,
+  doc,
+   getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  writeBatch,
+} from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Debt, Receivable, Payment, PortfolioItem } from '@/types';
+import { Debt, Receivable, Payment, PortfolioItem, UserProfile } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 interface FinanceContextType {
+  currentUser: UserProfile | null;
+  authLoading: boolean;
+  login: (usernameOrEmail: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  register: (data: {
+    fullName: string;
+    username: string;
+    email: string;
+    password: string;
+  }) => Promise<{ ok: boolean; error?: string }>;
+  verifyEmailForReset: (
+    username: string,
+    email: string
+  ) => Promise<{ ok: boolean; userId?: string; error?: string }>;
+  resetPasswordByEmail: (
+    userId: string,
+    newPassword: string
+  ) => Promise<{ ok: boolean; error?: string }>;
+  logout: () => void;
   debts: Debt[];
   receivables: Receivable[];
   portfolio: PortfolioItem[];
@@ -14,7 +42,9 @@ interface FinanceContextType {
   totalReceivables: number;
   totalPortfolio: number;
   netBalance: number;
-  addDebt: (debt: Omit<Debt, 'id' | 'payments' | 'createdAt' | 'remainingAmount' | 'isPaid' | 'orderIndex'>) => void;
+  addDebt: (
+    debt: Omit<Debt, 'id' | 'payments' | 'createdAt' | 'remainingAmount' | 'isPaid' | 'orderIndex'>
+  ) => void;
   updateDebt: (id: string, updates: Partial<Debt>) => void;
   toggleDebtPaid: (id: string, paid: boolean) => void;
   payDebt: (id: string, amount: number) => void;
@@ -31,28 +61,71 @@ interface FinanceContextType {
   reorderPortfolio: (sourceIndex: number, destinationIndex: number, list: PortfolioItem[]) => void;
 }
 
+const STORAGE_USER_KEY = 'micartera_auth_user';
+
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export const FinanceProvider = ({ children }: { children: React.ReactNode }) => {
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [receivables, setReceivables] = useState<Receivable[]>([]);
-  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const checkMonthlyReset = (currentDebts: Debt[]) => {
-    if (typeof window === 'undefined') return;
+  const [allDebts, setAllDebts] = useState<Debt[]>([]);
+  const [allReceivables, setAllReceivables] = useState<Receivable[]>([]);
+  const [allPortfolio, setAllPortfolio] = useState<PortfolioItem[]>([]);
+
+  // Ensure default user 'mauri' exists and restore saved session
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const saved = localStorage.getItem(STORAGE_USER_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved) as UserProfile;
+            if (parsed && parsed.username) {
+              setCurrentUser(parsed);
+            }
+          }
+        }
+
+        // Ensure default account 'mauri' exists in Firestore
+        const mauriRef = doc(db, 'users', 'mauri');
+        const mauriSnap = await getDoc(mauriRef);
+        if (!mauriSnap.exists()) {
+          await setDoc(mauriRef, {
+            id: 'mauri',
+            fullName: 'Mauricio Guirotane',
+            username: 'mauri',
+            email: 'mguirotane@gmail.com',
+            password: 'aaa111',
+            createdAt: new Date().toISOString(),
+          });
+        }
+      } catch (err) {
+        console.error('Error inicializando usuario:', err);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  const checkMonthlyReset = (currentDebts: Debt[], activeUsername: string) => {
+    if (typeof window === 'undefined' || !activeUsername) return;
     const now = new Date();
     const currentMonthKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
-    const lastReset = localStorage.getItem('last_reset_month');
+    const storageKey = `last_reset_month_${activeUsername}`;
+    const lastReset = localStorage.getItem(storageKey);
 
     if (lastReset !== currentMonthKey && currentDebts.length > 0) {
       let changed = false;
       const batch = writeBatch(db);
-      
-      currentDebts.forEach(debt => {
+
+      currentDebts.forEach((debt) => {
         if (debt.isFixed && debt.isPaid) {
-          batch.update(doc(db, 'debts', debt.id), { 
-            isPaid: false, 
-            remainingAmount: debt.originalAmount 
+          batch.update(doc(db, 'debts', debt.id), {
+            isPaid: false,
+            remainingAmount: debt.originalAmount,
           });
           changed = true;
         }
@@ -60,10 +133,10 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
 
       if (changed) {
         batch.commit().then(() => {
-          localStorage.setItem('last_reset_month', currentMonthKey);
+          localStorage.setItem(storageKey, currentMonthKey);
         });
       } else {
-        localStorage.setItem('last_reset_month', currentMonthKey);
+        localStorage.setItem(storageKey, currentMonthKey);
       }
     }
   };
@@ -76,15 +149,15 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
           const raw = { id: docSnap.id, ...docSnap.data() } as Debt;
           const payments = Array.isArray(raw.payments) ? raw.payments : [];
           const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-          
+
           const originalAmount = Number(raw.originalAmount) || 0;
-          let remainingAmount = raw.remainingAmount !== undefined ? Number(raw.remainingAmount) : originalAmount;
+          let remainingAmount =
+            raw.remainingAmount !== undefined ? Number(raw.remainingAmount) : originalAmount;
           let isPaid = raw.isPaid ?? false;
 
           if (raw.isFixed) {
             remainingAmount = isPaid ? 0 : originalAmount;
           } else {
-            // Recalculate remaining amount safely
             if (payments.length === 0 && !isPaid) {
               remainingAmount = originalAmount;
             } else {
@@ -103,11 +176,10 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
         });
 
         data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-        setDebts(data);
-        checkMonthlyReset(data);
+        setAllDebts(data);
       },
       (error) => {
-        console.error("Error cargando deudas de Firestore:", error);
+        console.error('Error cargando deudas de Firestore:', error);
       }
     );
 
@@ -123,10 +195,10 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
           };
         });
         data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-        setReceivables(data);
+        setAllReceivables(data);
       },
       (error) => {
-        console.error("Error cargando cobros de Firestore:", error);
+        console.error('Error cargando cobros de Firestore:', error);
       }
     );
 
@@ -143,10 +215,10 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
           };
         });
         data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-        setPortfolio(data);
+        setAllPortfolio(data);
       },
       (error) => {
-        console.error("Error cargando cartera de Firestore:", error);
+        console.error('Error cargando cartera de Firestore:', error);
       }
     );
 
@@ -157,22 +229,269 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
     };
   }, []);
 
-  const totalDebt = debts.filter(d => !d.isPaid).reduce((sum, d) => {
-    if (d.isFixed) {
-      return sum + (d.originalAmount || 0);
+  // Filter records belonging to currentUser ('mauri' also owns legacy records without userId)
+  const belongsToCurrentUser = (recordUserId?: string) => {
+    if (!currentUser) return false;
+    const uname = currentUser.username.toLowerCase();
+    if (uname === 'mauri') {
+      return !recordUserId || recordUserId.toLowerCase() === 'mauri';
     }
-    return sum + (d.remainingAmount !== undefined ? d.remainingAmount : (d.originalAmount || 0));
-  }, 0);
+    return recordUserId?.toLowerCase() === uname;
+  };
 
-  const totalReceivables = receivables.filter(r => !r.isPaid).reduce((sum, r) => sum + (r.amount || 0), 0);
+  const debts = allDebts.filter((d) => belongsToCurrentUser(d.userId));
+  const receivables = allReceivables.filter((r) => belongsToCurrentUser(r.userId));
+  const portfolio = allPortfolio.filter((p) => belongsToCurrentUser(p.userId));
+
+  useEffect(() => {
+    if (currentUser && debts.length > 0) {
+      checkMonthlyReset(debts, currentUser.username);
+    }
+  }, [currentUser, debts.length]);
+
+  const totalDebt = debts
+    .filter((d) => !d.isPaid)
+    .reduce((sum, d) => {
+      if (d.isFixed) {
+        return sum + (d.originalAmount || 0);
+      }
+      return sum + (d.remainingAmount !== undefined ? d.remainingAmount : d.originalAmount || 0);
+    }, 0);
+
+  const totalReceivables = receivables
+    .filter((r) => !r.isPaid)
+    .reduce((sum, r) => sum + (r.amount || 0), 0);
   const totalPortfolio = portfolio.reduce((sum, item) => sum + (item.amount || 0), 0);
   const netBalance = totalReceivables - totalDebt;
 
+  // Auth Methods
+  const login = async (
+    usernameOrEmail: string,
+    password: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const cleanInput = usernameOrEmail.trim().toLowerCase().replace(',', '.');
+      const snap = await getDocs(collection(db, 'users'));
+      let matchedUser: UserProfile | null = null;
+
+      snap.forEach((docSnap) => {
+        const u = docSnap.data() as UserProfile;
+        const uname = (u.username || docSnap.id).toLowerCase();
+        const uemail = (u.email || '').toLowerCase().replace(',', '.');
+        if (uname === cleanInput || uemail === cleanInput) {
+          matchedUser = { ...u, id: docSnap.id, username: uname };
+        }
+      });
+
+      if (!matchedUser) {
+        return { ok: false, error: 'El usuario o correo ingresado no existe.' };
+      }
+
+      if ((matchedUser as UserProfile).password !== password) {
+        return { ok: false, error: 'Contraseña incorrecta.' };
+      }
+
+      const safeUser: UserProfile = {
+        id: (matchedUser as UserProfile).id,
+        fullName: (matchedUser as UserProfile).fullName,
+        username: (matchedUser as UserProfile).username,
+        email: (matchedUser as UserProfile).email,
+        createdAt: (matchedUser as UserProfile).createdAt,
+      };
+
+      setCurrentUser(safeUser);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(safeUser));
+      }
+      return { ok: true };
+    } catch (err) {
+      console.error('Error en login:', err);
+      return { ok: false, error: 'Error al conectar con la base de datos.' };
+    }
+  };
+
+  const register = async (data: {
+    fullName: string;
+    username: string;
+    email: string;
+    password: string;
+  }): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const cleanUsername = data.username.trim().toLowerCase();
+      const cleanEmail = data.email.trim().toLowerCase().replace(',', '.');
+      const cleanName = data.fullName.trim();
+
+      if (!/^[a-z0-9_.-]+$/.test(cleanUsername)) {
+        return {
+          ok: false,
+          error: 'El nombre de usuario solo puede contener letras, números, puntos o guiones sin espacios.',
+        };
+      }
+
+      if (data.password.length <= 5) {
+        return {
+          ok: false,
+          error: 'La contraseña debe tener más de 5 caracteres (mínimo 6).',
+        };
+      }
+
+      if (!/^[a-zA-Z0-9]+$/.test(data.password)) {
+        return {
+          ok: false,
+          error: 'La contraseña debe contener solo letras y números.',
+        };
+      }
+
+      const snap = await getDocs(collection(db, 'users'));
+      let usernameTaken = false;
+      let emailTaken = false;
+
+      snap.forEach((docSnap) => {
+        const u = docSnap.data() as UserProfile;
+        if ((u.username || docSnap.id).toLowerCase() === cleanUsername) {
+          usernameTaken = true;
+        }
+        if ((u.email || '').toLowerCase().replace(',', '.') === cleanEmail) {
+          emailTaken = true;
+        }
+      });
+
+      if (usernameTaken) {
+        return {
+          ok: false,
+          error: 'Ese nombre de usuario ya está en uso. Elegí otro único.',
+        };
+      }
+
+      if (emailTaken) {
+        return {
+          ok: false,
+          error: 'Ese correo electrónico ya está registrado en otra cuenta.',
+        };
+      }
+
+      const newUser: UserProfile = {
+        id: cleanUsername,
+        fullName: cleanName,
+        username: cleanUsername,
+        email: cleanEmail,
+        password: data.password,
+        createdAt: new Date().toISOString(),
+      };
+
+      await setDoc(doc(db, 'users', cleanUsername), newUser);
+
+      const safeUser: UserProfile = {
+        id: newUser.id,
+        fullName: newUser.fullName,
+        username: newUser.username,
+        email: newUser.email,
+        createdAt: newUser.createdAt,
+      };
+
+      setCurrentUser(safeUser);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(safeUser));
+      }
+      return { ok: true };
+    } catch (err) {
+      console.error('Error en registro:', err);
+      return { ok: false, error: 'No se pudo completar el registro.' };
+    }
+  };
+
+  const verifyEmailForReset = async (
+    username: string,
+    email: string
+  ): Promise<{ ok: boolean; userId?: string; error?: string }> => {
+    try {
+      const cleanUsername = username.trim().toLowerCase();
+      const cleanEmail = email.trim().toLowerCase().replace(',', '.');
+      const snap = await getDocs(collection(db, 'users'));
+
+      let foundId: string | undefined;
+      snap.forEach((docSnap) => {
+        const u = docSnap.data() as UserProfile;
+        const uname = (u.username || docSnap.id).toLowerCase();
+        const uemail = (u.email || '').toLowerCase().replace(',', '.');
+        if (uname === cleanUsername && uemail === cleanEmail) {
+          foundId = docSnap.id;
+        }
+      });
+
+      if (!foundId) {
+        return {
+          ok: false,
+          error: 'El usuario y correo electrónico no coinciden con ninguna cuenta registrada.',
+        };
+      }
+
+      return { ok: true, userId: foundId };
+    } catch (err) {
+      console.error('Error verificando correo:', err);
+      return { ok: false, error: 'Error al verificar los datos.' };
+    }
+  };
+
+  const resetPasswordByEmail = async (
+    userId: string,
+    newPassword: string
+  ): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      if (newPassword.length <= 5) {
+        return {
+          ok: false,
+          error: 'La contraseña debe tener más de 5 caracteres (mínimo 6).',
+        };
+      }
+      if (!/^[a-zA-Z0-9]+$/.test(newPassword)) {
+        return {
+          ok: false,
+          error: 'La contraseña solo puede contener letras y números.',
+        };
+      }
+
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, { password: newPassword });
+
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const u = userSnap.data() as UserProfile;
+        const safeUser: UserProfile = {
+          id: userSnap.id,
+          fullName: u.fullName,
+          username: u.username,
+          email: u.email,
+          createdAt: u.createdAt,
+        };
+        setCurrentUser(safeUser);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(safeUser));
+        }
+      }
+      return { ok: true };
+    } catch (err) {
+      console.error('Error actualizando contraseña:', err);
+      return { ok: false, error: 'No se pudo actualizar la contraseña.' };
+    }
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_USER_KEY);
+    }
+  };
+
   // Debts Methods
-  const addDebt = (debtData: Omit<Debt, 'id' | 'payments' | 'createdAt' | 'remainingAmount' | 'isPaid' | 'orderIndex'>) => {
+  const addDebt = (
+    debtData: Omit<Debt, 'id' | 'payments' | 'createdAt' | 'remainingAmount' | 'isPaid' | 'orderIndex'>
+  ) => {
+    if (!currentUser) return;
     const newDebt: Debt = {
       ...debtData,
       id: uuidv4(),
+      userId: currentUser.username,
       payments: [],
       createdAt: new Date().toISOString(),
       remainingAmount: debtData.originalAmount,
@@ -183,11 +502,12 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const updateDebt = (id: string, updates: Partial<Debt>) => {
-    const debt = debts.find(d => d.id === id);
+    const debt = debts.find((d) => d.id === id);
     if (debt) {
-      const newOriginalAmount = updates.originalAmount !== undefined ? Number(updates.originalAmount) : debt.originalAmount;
+      const newOriginalAmount =
+        updates.originalAmount !== undefined ? Number(updates.originalAmount) : debt.originalAmount;
       const isFixed = updates.isFixed !== undefined ? updates.isFixed : debt.isFixed;
-      const payments = Array.isArray(updates.payments) ? updates.payments : (debt.payments || []);
+      const payments = Array.isArray(updates.payments) ? updates.payments : debt.payments || [];
       const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
       let newRemainingAmount: number;
@@ -203,7 +523,8 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
       const finalUpdates: Partial<Debt> = {
         ...updates,
         originalAmount: newOriginalAmount,
-        remainingAmount: updates.remainingAmount !== undefined ? updates.remainingAmount : newRemainingAmount,
+        remainingAmount:
+          updates.remainingAmount !== undefined ? updates.remainingAmount : newRemainingAmount,
         isPaid,
         isFixed,
       };
@@ -215,24 +536,24 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   const toggleDebtPaid = (id: string, paid: boolean) => {
-    const debt = debts.find(d => d.id === id);
+    const debt = debts.find((d) => d.id === id);
     if (debt) {
       updateDoc(doc(db, 'debts', id), {
         isPaid: paid,
-        remainingAmount: paid ? 0 : debt.originalAmount
+        remainingAmount: paid ? 0 : debt.originalAmount,
       });
     }
   };
 
   const payDebt = (id: string, amount: number) => {
-    const debt = debts.find(d => d.id === id);
+    const debt = debts.find((d) => d.id === id);
     if (debt) {
       const newPayment: Payment = { id: uuidv4(), amount, date: new Date().toISOString() };
       const newRemaining = Math.max(0, debt.remainingAmount - amount);
       updateDoc(doc(db, 'debts', id), {
         payments: [...debt.payments, newPayment],
         remainingAmount: newRemaining,
-        isPaid: newRemaining === 0
+        isPaid: newRemaining === 0,
       });
     }
   };
@@ -253,9 +574,11 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
 
   // Receivables Methods
   const addReceivable = (data: Omit<Receivable, 'id' | 'createdAt' | 'isPaid' | 'orderIndex'>) => {
+    if (!currentUser) return;
     const newRec: Receivable = {
       ...data,
       id: uuidv4(),
+      userId: currentUser.username,
       createdAt: new Date().toISOString(),
       isPaid: false,
       orderIndex: receivables.length,
@@ -263,13 +586,19 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
     setDoc(doc(db, 'receivables', newRec.id), newRec);
   };
 
-  const updateReceivable = (id: string, updates: Partial<Receivable>) => updateDoc(doc(db, 'receivables', id), updates);
+  const updateReceivable = (id: string, updates: Partial<Receivable>) =>
+    updateDoc(doc(db, 'receivables', id), updates);
 
-  const markReceivableAsPaid = (id: string, paid: boolean) => updateDoc(doc(db, 'receivables', id), { isPaid: paid });
+  const markReceivableAsPaid = (id: string, paid: boolean) =>
+    updateDoc(doc(db, 'receivables', id), { isPaid: paid });
 
   const deleteReceivable = (id: string) => deleteDoc(doc(db, 'receivables', id));
 
-  const reorderReceivables = async (sourceIndex: number, destinationIndex: number, list: Receivable[]) => {
+  const reorderReceivables = async (
+    sourceIndex: number,
+    destinationIndex: number,
+    list: Receivable[]
+  ) => {
     const newList = Array.from(list);
     const [removed] = newList.splice(sourceIndex, 1);
     newList.splice(destinationIndex, 0, removed);
@@ -283,9 +612,11 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
 
   // Portfolio (En Cartera / Disponibilidad) Methods
   const addPortfolioItem = (data: Omit<PortfolioItem, 'id' | 'createdAt' | 'orderIndex'>) => {
+    if (!currentUser) return;
     const newItem: PortfolioItem = {
       ...data,
       id: uuidv4(),
+      userId: currentUser.username,
       createdAt: new Date().toISOString(),
       orderIndex: portfolio.length,
     };
@@ -298,7 +629,11 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
 
   const deletePortfolioItem = (id: string) => deleteDoc(doc(db, 'portfolio', id));
 
-  const reorderPortfolio = async (sourceIndex: number, destinationIndex: number, list: PortfolioItem[]) => {
+  const reorderPortfolio = async (
+    sourceIndex: number,
+    destinationIndex: number,
+    list: PortfolioItem[]
+  ) => {
     const newList = Array.from(list);
     const [removed] = newList.splice(sourceIndex, 1);
     newList.splice(destinationIndex, 0, removed);
@@ -311,12 +646,39 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   return (
-    <FinanceContext.Provider value={{
-      debts, receivables, portfolio, totalDebt, totalReceivables, totalPortfolio, netBalance,
-      addDebt, updateDebt, toggleDebtPaid, payDebt, deleteDebt, reorderDebts,
-      addReceivable, updateReceivable, markReceivableAsPaid, deleteReceivable, reorderReceivables,
-      addPortfolioItem, updatePortfolioItem, deletePortfolioItem, reorderPortfolio
-    }}>
+    <FinanceContext.Provider
+      value={{
+        currentUser,
+        authLoading,
+        login,
+        register,
+        verifyEmailForReset,
+        resetPasswordByEmail,
+        logout,
+        debts,
+        receivables,
+        portfolio,
+        totalDebt,
+        totalReceivables,
+        totalPortfolio,
+        netBalance,
+        addDebt,
+        updateDebt,
+        toggleDebtPaid,
+        payDebt,
+        deleteDebt,
+        reorderDebts,
+        addReceivable,
+        updateReceivable,
+        markReceivableAsPaid,
+        deleteReceivable,
+        reorderReceivables,
+        addPortfolioItem,
+        updatePortfolioItem,
+        deletePortfolioItem,
+        reorderPortfolio,
+      }}
+    >
       {children}
     </FinanceContext.Provider>
   );

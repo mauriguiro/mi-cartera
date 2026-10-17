@@ -1,3 +1,12 @@
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  username: string;
+  email: string;
+  password?: string;
+  createdAt: string;
+}
+
 export interface Payment {
   id: string;
   amount: number;
@@ -6,6 +15,7 @@ export interface Payment {
 
 export interface Debt {
   id: string;
+  userId?: string;
   concept: string;
   creditor: string;
   originalAmount: number;
@@ -20,6 +30,7 @@ export interface Debt {
 
 export interface Receivable {
   id: string;
+  userId?: string;
   debtor: string;
   amount: number;
   concept: string;
@@ -33,6 +44,7 @@ export type PortfolioCategory = 'efectivo' | 'cheque' | 'cuenta';
 
 export interface PortfolioItem {
   id: string;
+  userId?: string;
   category: PortfolioCategory;
   title: string;
   amount: number;
@@ -40,4 +52,3 @@ export interface PortfolioItem {
   createdAt: string;
   orderIndex: number;
 }
-

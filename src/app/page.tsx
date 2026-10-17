@@ -3,21 +3,42 @@
 import Link from 'next/link';
 import { useFinance } from '@/contexts/FinanceContext';
 import { formatCurrency } from '@/utils/formatters';
-import { Wallet, CreditCard, Banknote, ChevronRight } from 'lucide-react';
+import { Wallet, CreditCard, Banknote, ChevronRight, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 
 import Image from 'next/image';
 
 export default function DashboardScreen() {
-  const { netBalance, totalReceivables, totalDebt, totalPortfolio } = useFinance();
+  const { netBalance, totalReceivables, totalDebt, totalPortfolio, currentUser, logout } = useFinance();
 
   return (
     <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative shadow-sm flex flex-col">
-      <header className="bg-gray-800 text-white px-4 py-4 shadow-sm flex items-center justify-center gap-2.5 border-b border-gray-700">
-        <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center bg-gray-900 border border-gray-700 shadow-md">
-          <Image src="/icon.png" alt="MiCartera Icon" width={36} height={36} className="object-cover" priority />
+      <header className="bg-gray-800 text-white px-4 py-3.5 shadow-sm flex items-center justify-between border-b border-gray-700">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center bg-gray-900 border border-gray-700 shadow-md">
+            <Image src="/icon.png" alt="MiCartera Icon" width={36} height={36} className="object-cover" priority />
+          </div>
+          <div>
+            <h1 className="text-lg font-black tracking-tight text-white leading-tight">MiCartera</h1>
+            {currentUser && (
+              <p className="text-[11px] text-gray-400 font-medium leading-tight">
+                {currentUser.fullName} <span className="text-emerald-400">(@{currentUser.username})</span>
+              </p>
+            )}
+          </div>
         </div>
-        <h1 className="text-xl font-black tracking-tight text-white">MiCartera</h1>
+
+        {currentUser && (
+          <button
+            type="button"
+            onClick={logout}
+            className="flex items-center gap-1.5 text-xs font-semibold text-gray-300 hover:text-red-400 bg-gray-900 hover:bg-gray-950 border border-gray-700 px-2.5 py-1.5 rounded-lg transition-colors"
+            title="Cerrar sesión"
+          >
+            <LogOut size={14} />
+            <span>Salir</span>
+          </button>
+        )}
       </header>
 
       <main className="p-4 space-y-8 pb-20">
@@ -75,7 +96,7 @@ export default function DashboardScreen() {
       </main>
 
       <footer className="mt-auto py-4 text-center">
-        <span className="text-[11px] font-medium text-gray-600">MiCartera v0.2.3</span>
+        <span className="text-[11px] font-medium text-gray-600">MiCartera v0.3.0</span>
       </footer>
     </div>
   );
