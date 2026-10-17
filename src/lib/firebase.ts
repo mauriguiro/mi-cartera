@@ -1,5 +1,6 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: 'AIzaSyBqEqWFe2C6HqQmNgHtYrUykrHvtKQqRL0',
@@ -10,14 +11,25 @@ const firebaseConfig = {
   storageBucket: 'mi-cartera-7bd21.firebasestorage.app',
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+const emailAuthConfig = {
+  apiKey: 'AIzaSyA-cUgP6Q5H88NC4Bh1026Lyhj_NByQKrs',
+  appId: '1:309008920891:web:8f08d643cd90d5c41d471e',
+  messagingSenderId: '309008920891',
+  projectId: 'app-de-finanzas-399ed',
+  authDomain: 'app-de-finanzas-399ed.firebaseapp.com',
+  storageBucket: 'app-de-finanzas-399ed.firebasestorage.app',
+};
+
+const app = getApps().some((a) => a.name === '[DEFAULT]')
+  ? getApp()
+  : initializeApp(firebaseConfig);
+
+const authApp = getApps().some((a) => a.name === 'micartera-email-auth')
+  ? getApp('micartera-email-auth')
+  : initializeApp(emailAuthConfig, 'micartera-email-auth');
+
 const db = getFirestore(app);
+const emailAuth = getAuth(authApp);
+emailAuth.languageCode = 'es';
 
-// Enable offline persistence
-// if (typeof window !== 'undefined') {
-//   enableMultiTabIndexedDbPersistence(db).catch((err) => {
-//     console.error("Firebase persistence error:", err);
-//   });
-// }
-
-export { db };
+export { db, emailAuth };

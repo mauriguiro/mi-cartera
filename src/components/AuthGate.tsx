@@ -1,21 +1,43 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useFinance } from '@/contexts/FinanceContext';
-import { Eye, EyeOff, User, Lock, Mail, UserCheck, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  User,
+  Lock,
+  Mail,
+  UserCheck,
+  KeyRound,
+  CheckCircle2,
+  AlertCircle,
+  Send,
+  Link2,
+} from 'lucide-react';
 import clsx from 'clsx';
 
 type AuthMode = 'login' | 'register' | 'recover';
+type RecoverStep = 'request' | 'sent' | 'verified';
 
 export default function AuthGate({ children }: { children: React.ReactNode }) {
-  const { currentUser, authLoading, login, register, verifyEmailForReset, resetPasswordByEmail } =
-    useFinance();
+  const {
+    currentUser,
+    authLoading,
+    login,
+    register,
+    sendRecoveryVerificationEmail,
+    verifyRecoveryEmailLink,
+    resetPasswordByEmail,
+  } = useFinance();
 
   const [mode, setMode] = useState<AuthMode>('login');
+  const [recoverStep, setRecoverStep] = useState<RecoverStep>('request');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [verifyingUrlLink, setVerifyingUrlLink] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -32,34 +54,87 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
   // Recover / Verify by Email fields
   const [recoverEmail, setRecoverEmail] = useState('');
+  const [manualVerificationLink, setManualVerificationLink] = useState('');
   const [verifiedUserId, setVerifiedUserId] = useState<string | null>(null);
   const [recoveredUsername, setRecoveredUsername] = useState('');
   const [recoveredFullName, setRecoveredFullName] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
-  if (authLoading) {
+  // Detect incoming email verification link in URL (?mode=signIn&oobCode=...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const href = window.location.href;
+    const params = new URLSearchParams(window.location.search);
+    const hasOobCode = params.has('oobCode') && params.get('mode') === 'signIn';
+
+    if (!hasOobCode) return;
+
+    const emailParam = params.get('recover_email') || '';
+    if (emailParam) {
+      setRecoverEmail(emailParam);
+    }
+
+    setMode('recover');
+    setVerifyingUrlLink(true);
+    setError('');
+    setSuccessMsg('');
+
+    verifyRecoveryEmailLink(href, emailParam)
+      .then((res) => {
+        // Clean URL parameters so refreshing doesn't re-use the one-time token
+        window.history.replaceState({}, '', window.location.pathname);
+
+        if (res.ok && res.userId) {
+          setVerifiedUserId(res.userId);
+          setRecoveredUsername(res.username || res.userId);
+          setRecoveredFullName(res.fullName || '');
+          if (res.email) setRecoverEmail(res.email);
+          setRecoverStep('verified');
+          setSuccessMsg(
+            '¡Correo verificado con éxito! Ya podés ver tu usuario o cambiar tu contraseña.'
+          );
+        } else {
+          setRecoverStep('request');
+          setError(
+            res.error ||
+              'El enlace de verificación expiró o no es válido. Solicitá un nuevo correo.'
+          );
+        }
+      })
+      .finally(() => {
+        setVerifyingUrlLink(false);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (authLoading || verifyingUrlLink) {
     return (
       <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen flex flex-col items-center justify-center p-6">
         <div className="w-14 h-14 rounded-2xl overflow-hidden flex items-center justify-center bg-gray-900 border border-gray-700 shadow-lg mb-3 animate-pulse">
           <Image src="/icon.png" alt="MiCartera Icon" width={56} height={56} className="object-cover" priority />
         </div>
-        <p className="text-gray-400 text-sm font-semibold">Cargando MiCartera...</p>
+        <p className="text-gray-400 text-sm font-semibold">
+          {verifyingUrlLink ? 'Verificando enlace de tu correo...' : 'Cargando MiCartera...'}
+        </p>
       </div>
     );
   }
 
-  if (currentUser) {
+  // Only render children if logged in AND not actively completing an email recovery verification
+  if (currentUser && !(mode === 'recover' && recoverStep === 'verified')) {
     return <>{children}</>;
   }
 
   const switchMode = (newMode: AuthMode) => {
     setMode(newMode);
+    setRecoverStep('request');
     setError('');
     setSuccessMsg('');
     setVerifiedUserId(null);
     setRecoveredUsername('');
     setRecoveredFullName('');
+    setManualVerificationLink('');
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -111,23 +186,51 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleVerifyEmail = async (e: React.FormEvent) => {
+  const handleSendRecoveryEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
     setSubmitting(true);
-    const res = await verifyEmailForReset(recoverEmail);
+    const res = await sendRecoveryVerificationEmail(recoverEmail);
+    setSubmitting(false);
+
+    if (!res.ok) {
+      setError(res.error || 'No se pudo enviar el correo de verificación.');
+      return;
+    }
+
+    if (res.email) {
+      setRecoverEmail(res.email);
+    }
+    setRecoverStep('sent');
+    setSuccessMsg(
+      `Enviamos un enlace de verificación a ${res.email || recoverEmail}. Abrí tu correo y tocá el enlace para continuar.`
+    );
+  };
+
+  const handleManualVerifyLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    if (!manualVerificationLink.trim()) {
+      setError('Pegá el enlace que recibiste en tu correo electrónico.');
+      return;
+    }
+
+    setSubmitting(true);
+    const res = await verifyRecoveryEmailLink(manualVerificationLink, recoverEmail);
     setSubmitting(false);
 
     if (!res.ok || !res.userId) {
-      setError(res.error || 'No se pudo verificar el correo.');
+      setError(res.error || 'No se pudo verificar el enlace.');
       return;
     }
 
     setVerifiedUserId(res.userId);
     setRecoveredUsername(res.username || res.userId);
     setRecoveredFullName(res.fullName || '');
-    setSuccessMsg('Cuenta encontrada y verificada por correo.');
+    setRecoverStep('verified');
+    setSuccessMsg('¡Correo verificado con éxito! Ya podés ver tu usuario o cambiar tu contraseña.');
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -156,7 +259,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
 
     if (!res.ok) {
       setError(res.error || 'No se pudo cambiar la contraseña.');
+      return;
     }
+
+    setMode('login');
+    setRecoverStep('request');
+    setVerifiedUserId(null);
   };
 
   return (
@@ -402,11 +510,14 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           {/* RECOVER USERNAME & PASSWORD BY EMAIL FORM */}
           {mode === 'recover' && (
             <div>
-              {!verifiedUserId ? (
-                <form onSubmit={handleVerifyEmail} className="space-y-4">
-                  <p className="text-xs text-gray-400 leading-relaxed">
-                    Ingresá el correo electrónico con el que te registraste para recuperar tu <strong>nombre de usuario</strong> y/o cambiar tu <strong>contraseña</strong>.
-                  </p>
+              {recoverStep === 'request' && (
+                <form onSubmit={handleSendRecoveryEmail} className="space-y-4">
+                  <div className="p-3.5 rounded-xl bg-gray-800/70 border border-gray-700 text-xs text-gray-300 leading-relaxed">
+                    🔒 <strong>Verificación de seguridad por correo:</strong>
+                    <br />
+                    Ingresá el correo con el que te registraste. Te enviaremos un{' '}
+                    <strong>enlace de verificación a tu casilla de correo</strong> para confirmar tu identidad antes de mostrar tu usuario o cambiar tu contraseña.
+                  </div>
 
                   <div>
                     <label className="block text-xs font-bold text-gray-300 mb-1">
@@ -429,20 +540,97 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-500 transition-colors shadow-md disabled:opacity-50 text-sm"
+                    className="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-500 transition-colors shadow-md disabled:opacity-50 text-sm flex items-center justify-center gap-2"
                   >
-                    {submitting ? 'Buscando cuenta...' : 'Recuperar por Correo'}
+                    <Send size={16} />
+                    {submitting ? 'Enviando correo...' : 'Enviar Correo de Verificación'}
                   </button>
                 </form>
-              ) : (
+              )}
+
+              {recoverStep === 'sent' && (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-gray-800/90 border border-emerald-700/60 space-y-2 text-xs text-gray-300 leading-relaxed">
+                    <p className="text-emerald-400 font-bold text-sm flex items-center gap-1.5">
+                      <Mail size={16} /> Revisá tu bandeja de entrada
+                    </p>
+                    <p>
+                      Te enviamos un correo electrónico a{' '}
+                      <strong className="text-white">{recoverEmail}</strong>.
+                    </p>
+                    <p>
+                      <strong>Paso 1:</strong> Abrí tu aplicación de correo (revisá también la carpeta de{' '}
+                      <em>Spam</em> o <em>Correo no deseado</em>).
+                    </p>
+                    <p>
+                      <strong>Paso 2:</strong> Tocá el enlace del correo para verificar tu cuenta. Al abrirlo, se habilitará automáticamente la recuperación de tu usuario y el cambio de contraseña.
+                    </p>
+                  </div>
+
+                  {/* Optional manual link paste if opened on another device/browser */}
+                  <form
+                    onSubmit={handleManualVerifyLink}
+                    className="p-3.5 rounded-xl bg-gray-950/70 border border-gray-800 space-y-2.5"
+                  >
+                    <label className="block text-[11px] font-bold text-gray-400">
+                      ¿Abriste el correo en otro dispositivo? Copiá y pegá acá el enlace del correo:
+                    </label>
+                    <div className="relative">
+                      <Link2 size={15} className="absolute left-3 top-2.5 text-gray-500" />
+                      <input
+                        type="text"
+                        placeholder="Pegar enlace de verificación del correo..."
+                        className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-xs focus:outline-none focus:border-emerald-500"
+                        value={manualVerificationLink}
+                        onChange={(e) => setManualVerificationLink(e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 text-emerald-400 font-bold py-2 rounded-lg text-xs transition-colors disabled:opacity-50"
+                    >
+                      {submitting ? 'Verificando...' : 'Verificar enlace pegado'}
+                    </button>
+                  </form>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRecoverStep('request');
+                        setError('');
+                        setSuccessMsg('');
+                      }}
+                      className="text-xs text-gray-400 hover:text-gray-200 underline"
+                    >
+                      Cambiar correo
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={handleSendRecoveryEmail}
+                      className="text-xs text-emerald-400 hover:underline font-bold disabled:opacity-50"
+                    >
+                      {submitting ? 'Reenviando...' : 'Reenviar correo'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {recoverStep === 'verified' && verifiedUserId && (
                 <div className="space-y-4">
                   {/* Recovered Username Box */}
                   <div className="p-4 rounded-xl bg-gray-800 border border-emerald-700/60 text-center">
                     {recoveredFullName && (
-                      <p className="text-xs text-gray-400 mb-1">Titular: <strong className="text-gray-200">{recoveredFullName}</strong></p>
+                      <p className="text-xs text-gray-400 mb-1">
+                        Titular: <strong className="text-gray-200">{recoveredFullName}</strong>
+                      </p>
                     )}
                     <p className="text-xs text-gray-400">Tu nombre de usuario es:</p>
-                    <p className="text-xl font-black text-emerald-400 mt-1 tracking-wide">{recoveredUsername}</p>
+                    <p className="text-xl font-black text-emerald-400 mt-1 tracking-wide">
+                      {recoveredUsername}
+                    </p>
                     <button
                       type="button"
                       onClick={() => {
@@ -466,7 +654,10 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                   <form onSubmit={handleResetPassword} className="space-y-3.5">
                     <div>
                       <label className="block text-xs font-bold text-gray-300 mb-1">
-                        Nueva contraseña <span className="text-gray-500 font-normal">(más de 5 caracteres, letras y números)</span>
+                        Nueva contraseña{' '}
+                        <span className="text-gray-500 font-normal">
+                          (más de 5 caracteres, letras y números)
+                        </span>
                       </label>
                       <div className="relative">
                         <Lock size={16} className="absolute left-3 top-3 text-gray-500" />

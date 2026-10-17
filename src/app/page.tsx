@@ -96,7 +96,7 @@ export default function DashboardScreen() {
       </main>
 
       <footer className="mt-auto py-4 text-center">
-        <span className="text-[11px] font-medium text-gray-600">MiCartera v0.3.2</span>
+        <span className="text-[11px] font-medium text-gray-600">MiCartera v0.3.3</span>
       </footer>
     </div>
   );

@@ -12,7 +12,13 @@ import {
   deleteDoc,
   writeBatch,
 } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import {
+  sendSignInLinkToEmail,
+  isSignInWithEmailLink,
+  signInWithEmailLink,
+  signOut,
+} from 'firebase/auth';
+import { db, emailAuth } from '@/lib/firebase';
 import { Debt, Receivable, Payment, PortfolioItem, UserProfile } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -26,9 +32,13 @@ interface FinanceContextType {
     email: string;
     password: string;
   }) => Promise<{ ok: boolean; error?: string }>;
-  verifyEmailForReset: (
+  sendRecoveryVerificationEmail: (
     email: string
-  ) => Promise<{ ok: boolean; userId?: string; username?: string; fullName?: string; error?: string }>;
+  ) => Promise<{ ok: boolean; email?: string; error?: string }>;
+  verifyRecoveryEmailLink: (
+    linkOrUrl: string,
+    fallbackEmail?: string
+  ) => Promise<{ ok: boolean; userId?: string; username?: string; fullName?: string; email?: string; error?: string }>;
   resetPasswordByEmail: (
     userId: string,
     newPassword: string
@@ -399,14 +409,20 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
     }
   };
 
-  const verifyEmailForReset = async (
+  const PENDING_RECOVER_EMAIL_KEY = 'micartera_pending_recover_email';
+
+  const sendRecoveryVerificationEmail = async (
     email: string
-  ): Promise<{ ok: boolean; userId?: string; username?: string; fullName?: string; error?: string }> => {
+  ): Promise<{ ok: boolean; email?: string; error?: string }> => {
     try {
       const cleanEmail = email.trim().toLowerCase().replace(',', '.');
-      const snap = await getDocs(collection(db, 'users'));
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return { ok: false, error: 'Ingresá un correo electrónico válido.' };
+      }
 
+      const snap = await getDocs(collection(db, 'users'));
       let foundUser: UserProfile | undefined;
+
       snap.forEach((docSnap) => {
         const u = docSnap.data() as UserProfile;
         const uname = (u.username || docSnap.id).toLowerCase();
@@ -423,15 +439,151 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
         };
       }
 
+      const origin =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : 'https://mi-cartera-eight.vercel.app';
+
+      const continueUrl = `${origin}/?recover_email=${encodeURIComponent(cleanEmail)}`;
+
+      await sendSignInLinkToEmail(emailAuth, cleanEmail, {
+        url: continueUrl,
+        handleCodeInApp: true,
+      });
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(PENDING_RECOVER_EMAIL_KEY, cleanEmail);
+      }
+
+      return {
+        ok: true,
+        email: cleanEmail,
+      };
+    } catch (err: any) {
+      console.error('Error enviando correo de verificación:', err);
+      if (err?.code === 'auth/too-many-requests') {
+        return {
+          ok: false,
+          error: 'Se enviaron demasiados correos seguidos. Esperá unos minutos e intentá de nuevo.',
+        };
+      }
+      return {
+        ok: false,
+        error: 'No se pudo enviar el correo de verificación. Verificá tu conexión.',
+      };
+    }
+  };
+
+  const verifyRecoveryEmailLink = async (
+    linkOrUrl: string,
+    fallbackEmail?: string
+  ): Promise<{
+    ok: boolean;
+    userId?: string;
+    username?: string;
+    fullName?: string;
+    email?: string;
+    error?: string;
+  }> => {
+    try {
+      const trimmedLink = linkOrUrl.trim();
+      if (!trimmedLink) {
+        return { ok: false, error: 'Enlace de verificación vacío.' };
+      }
+
+      // Extract recover_email from the link or URL if present
+      let emailFromUrl = '';
+      try {
+        const parsedUrl = new URL(trimmedLink);
+        emailFromUrl = parsedUrl.searchParams.get('recover_email') || '';
+        if (!emailFromUrl) {
+          const cont = parsedUrl.searchParams.get('continueUrl');
+          if (cont) {
+            const contUrl = new URL(cont);
+            emailFromUrl = contUrl.searchParams.get('recover_email') || '';
+          }
+        }
+      } catch {
+        // Ignore URL parse error
+      }
+
+      const storedEmail =
+        typeof window !== 'undefined'
+          ? localStorage.getItem(PENDING_RECOVER_EMAIL_KEY) || ''
+          : '';
+
+      const targetEmail = (emailFromUrl || fallbackEmail || storedEmail)
+        .trim()
+        .toLowerCase()
+        .replace(',', '.');
+
+      if (!targetEmail) {
+        return {
+          ok: false,
+          error: 'Ingresá tu correo electrónico para completar la verificación del enlace.',
+        };
+      }
+
+      if (!isSignInWithEmailLink(emailAuth, trimmedLink)) {
+        return {
+          ok: false,
+          error: 'El enlace ingresado no es un enlace de verificación válido.',
+        };
+      }
+
+      // Cryptographically verify the one-time email link with Firebase Auth
+      const cred = await signInWithEmailLink(emailAuth, targetEmail, trimmedLink);
+      const verifiedEmail = (cred.user.email || targetEmail).toLowerCase().replace(',', '.');
+
+      // Clean up temporary Firebase Auth session
+      await signOut(emailAuth).catch(() => {});
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(PENDING_RECOVER_EMAIL_KEY);
+      }
+
+      // Look up user in Firestore by verified email
+      const snap = await getDocs(collection(db, 'users'));
+      let foundUser: UserProfile | undefined;
+
+      snap.forEach((docSnap) => {
+        const u = docSnap.data() as UserProfile;
+        const uname = (u.username || docSnap.id).toLowerCase();
+        const uemail = (u.email || '').toLowerCase().replace(',', '.');
+        if (uemail === verifiedEmail) {
+          foundUser = { ...u, id: docSnap.id, username: uname };
+        }
+      });
+
+      if (!foundUser) {
+        return {
+          ok: false,
+          error: 'No se encontró una cuenta asociada a este correo verificado.',
+        };
+      }
+
       return {
         ok: true,
         userId: foundUser.id,
         username: foundUser.username,
         fullName: foundUser.fullName,
+        email: foundUser.email,
       };
-    } catch (err) {
-      console.error('Error verificando correo:', err);
-      return { ok: false, error: 'Error al verificar el correo.' };
+    } catch (err: any) {
+      console.error('Error verificando enlace de correo:', err);
+      if (
+        err?.code === 'auth/invalid-action-code' ||
+        err?.code === 'auth/expired-action-code'
+      ) {
+        return {
+          ok: false,
+          error:
+            'El enlace de verificación ya fue usado o venció. Solicitá un nuevo correo de verificación.',
+        };
+      }
+      return {
+        ok: false,
+        error: 'No se pudo verificar el enlace del correo. Pedí un enlace nuevo.',
+      };
     }
   };
 
@@ -654,7 +806,8 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
         authLoading,
         login,
         register,
-        verifyEmailForReset,
+        sendRecoveryVerificationEmail,
+        verifyRecoveryEmailLink,
         resetPasswordByEmail,
         logout,
         debts,
