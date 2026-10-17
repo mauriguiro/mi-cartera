@@ -231,7 +231,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                   <User size={16} className="absolute left-3 top-3 text-gray-500" />
                   <input
                     type="text"
-                    placeholder="Ej: mauri"
+                    placeholder="Usuario"
                     autoCapitalize="none"
                     autoCorrect="off"
                     className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
@@ -295,7 +295,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                   <User size={16} className="absolute left-3 top-3 text-gray-500" />
                   <input
                     type="text"
-                    placeholder="Ej: Mauricio Guirotane"
+                    placeholder="Ej: Juan Pérez"
                     className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
@@ -312,7 +312,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                   <UserCheck size={16} className="absolute left-3 top-3 text-gray-500" />
                   <input
                     type="text"
-                    placeholder="Ej: mauri"
+                    placeholder="Usuario"
                     autoCapitalize="none"
                     autoCorrect="off"
                     className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
@@ -349,7 +349,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
                   <Lock size={16} className="absolute left-3 top-3 text-gray-500" />
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Mínimo 6 caracteres (ej: aaa111)"
+                    placeholder="Mínimo 6 caracteres"
                     className="w-full bg-gray-800 text-white border border-gray-700 rounded-xl pl-9 pr-10 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
