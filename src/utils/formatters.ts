@@ -7,6 +7,14 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
+export const formatUSD = (amount: number): string => {
+  const formatted = new Intl.NumberFormat('es-AR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
+  return `U$S ${formatted}`;
+};
+
 export const formatAmountInput = (value: string): string => {
   if (!value) return '';
   // Allow only digits and comma for decimals

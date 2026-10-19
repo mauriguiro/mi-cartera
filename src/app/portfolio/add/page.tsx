@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Banknote, FileSpreadsheet, Landmark, Check } from 'lucide-react';
+import { ArrowLeft, Banknote, FileSpreadsheet, Landmark, DollarSign, Check } from 'lucide-react';
 import { PortfolioCategory } from '@/types';
 import { formatAmountInput, parseAmount } from '@/utils/formatters';
 import clsx from 'clsx';
@@ -13,12 +13,14 @@ const QUICK_TITLES: Record<PortfolioCategory, string[]> = {
   efectivo: ['Efectivo en mano', 'Caja chica', 'Ahorro en efectivo'],
   cheque: ['Cheque físico', 'E-Cheq', 'Cheque de tercero'],
   cuenta: ['Mercado Pago', 'Ualá', 'Naranja X', 'Cuenta Bancaria'],
+  dolares: ['Dólares en efectivo', 'Dólares en cuenta', 'Ahorro en USD', 'Dólar MEP'],
 };
 
 const QUICK_NOTE_CHIPS: Record<PortfolioCategory, string[]> = {
   efectivo: ['Disponible para usar', 'Reservado para pagos', 'Guardado en caja'],
   cheque: ['Fecha de cobro: ', 'Entregado por: ', 'Banco: ', 'N° Cheque: '],
   cuenta: ['Dinero disponible', 'Generando rendimientos', 'CBU / Alias: ', 'Recibido de: '],
+  dolares: ['Cara grande (Azul)', 'Cara chica', 'Guardado en caja', 'Cotización ref: ', 'Recibido de: '],
 };
 
 export default function AddPortfolioPage() {
@@ -35,7 +37,7 @@ export default function AddPortfolioPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const cat = params.get('category');
-      if (cat === 'efectivo' || cat === 'cheque' || cat === 'cuenta') {
+      if (cat === 'efectivo' || cat === 'cheque' || cat === 'cuenta' || cat === 'dolares') {
         setCategory(cat);
         setManualCategorySelected(true);
       }
@@ -52,6 +54,14 @@ export default function AddPortfolioPage() {
     if (!manualCategorySelected) {
       const lower = val.toLowerCase();
       if (
+        lower.includes('dolar') ||
+        lower.includes('dólar') ||
+        lower.includes('usd') ||
+        lower.includes('u$s') ||
+        lower.includes('mep')
+      ) {
+        setCategory('dolares');
+      } else if (
         lower.includes('mercado') ||
         lower.includes('mp') ||
         lower.includes('uala') ||
@@ -105,7 +115,7 @@ export default function AddPortfolioPage() {
           <label className="block text-sm font-bold text-gray-300 mb-2">
             ¿Qué tipo de disponibilidad vas a cargar?
           </label>
-          <div className="grid grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             <button
               type="button"
               onClick={() => selectCategory('efectivo')}
@@ -162,6 +172,25 @@ export default function AddPortfolioPage() {
               <Landmark size={22} className="mb-1.5" />
               En Cuenta
             </button>
+
+            <button
+              type="button"
+              onClick={() => selectCategory('dolares')}
+              className={clsx(
+                'relative flex flex-col items-center justify-center p-3 rounded-xl border-2 font-bold text-xs transition-all',
+                category === 'dolares'
+                  ? 'bg-lime-600/25 border-lime-500 text-lime-300 shadow-sm'
+                  : 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-750'
+              )}
+            >
+              {category === 'dolares' && (
+                <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full bg-lime-500 text-gray-950 flex items-center justify-center">
+                  <Check size={11} strokeWidth={3} />
+                </span>
+              )}
+              <DollarSign size={22} className="mb-1.5" />
+              Dólares
+            </button>
           </div>
         </div>
 
@@ -177,7 +206,9 @@ export default function AddPortfolioPage() {
                 ? 'Ej: Efectivo en mano, Caja...'
                 : category === 'cheque'
                 ? 'Ej: Cheque Cliente X, E-Cheq...'
-                : 'Ej: Mercado Pago, Banco Nación...'
+                : category === 'cuenta'
+                ? 'Ej: Mercado Pago, Banco Nación...'
+                : 'Ej: Dólares en efectivo, Caja USD...'
             }
             className="w-full bg-gray-800 text-white border border-gray-700 rounded p-2 focus:ring-emerald-500 focus:border-emerald-500"
             value={title}
@@ -200,7 +231,9 @@ export default function AddPortfolioPage() {
 
         {/* Monto con separadores de miles */}
         <div>
-          <label className="block text-sm font-bold text-gray-300 mb-1">Monto Disponible</label>
+          <label className="block text-sm font-bold text-gray-300 mb-1">
+            {category === 'dolares' ? 'Monto Disponible (U$S)' : 'Monto Disponible ($)'}
+          </label>
           <input
             type="text"
             inputMode="decimal"
@@ -242,7 +275,14 @@ export default function AddPortfolioPage() {
           type="submit"
           className="w-full bg-emerald-600 text-white font-bold py-3 rounded hover:bg-emerald-500 transition-colors mt-6 shadow-md"
         >
-          Guardar en {category === 'efectivo' ? 'Efectivo' : category === 'cheque' ? 'Cheques' : 'En Cuenta'}
+          Guardar en{' '}
+          {category === 'efectivo'
+            ? 'Efectivo'
+            : category === 'cheque'
+            ? 'Cheques'
+            : category === 'cuenta'
+            ? 'En Cuenta'
+            : 'Dólares'}
         </button>
       </form>
     </div>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useFinance } from '@/contexts/FinanceContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, formatUSD } from '@/utils/formatters';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   Banknote,
   FileSpreadsheet,
   Landmark,
+  DollarSign,
   StickyNote,
   GripVertical,
   ArrowUpDown,
@@ -42,10 +43,15 @@ const CATEGORY_META: Record<
     badgeClass: 'bg-green-950 text-green-300 border-green-700/60',
     Icon: Landmark,
   },
+  dolares: {
+    label: 'Dólares',
+    badgeClass: 'bg-lime-950 text-lime-300 border-lime-700/60',
+    Icon: DollarSign,
+  },
 };
 
 export default function PortfolioPage() {
-  const { portfolio, totalPortfolio, reorderPortfolio, deletePortfolioItem } = useFinance();
+  const { portfolio, totalPortfolio, totalPortfolioUSD, reorderPortfolio, deletePortfolioItem } = useFinance();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filterCategory, setFilterCategory] = useState<'todos' | PortfolioCategory>('todos');
   const [isReordering, setIsReordering] = useState(false);
@@ -65,6 +71,9 @@ export default function PortfolioPage() {
     .reduce((acc, i) => acc + (i.amount || 0), 0);
   const totalCuenta = portfolio
     .filter((i) => i.category === 'cuenta')
+    .reduce((acc, i) => acc + (i.amount || 0), 0);
+  const totalDolares = portfolio
+    .filter((i) => i.category === 'dolares')
     .reduce((acc, i) => acc + (i.amount || 0), 0);
 
   const filteredList =
@@ -86,7 +95,14 @@ export default function PortfolioPage() {
           </Link>
           <div>
             <h1 className="text-base font-bold leading-tight">En Cartera</h1>
-            <p className="text-xs font-black text-emerald-400">{formatCurrency(totalPortfolio)}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <p className="text-xs font-black text-emerald-400">{formatCurrency(totalPortfolio)}</p>
+              {totalPortfolioUSD > 0 && (
+                <span className="text-xs font-black text-lime-400">
+                  + {formatUSD(totalPortfolioUSD)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         {portfolio.length > 1 && filterCategory === 'todos' && (
@@ -108,7 +124,7 @@ export default function PortfolioPage() {
 
       <main className="flex-1 p-4 overflow-y-auto pb-24">
         {/* Subtotales / Autosuma por tipo */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-2 mb-4">
           <button
             type="button"
             onClick={() => setFilterCategory(filterCategory === 'efectivo' ? 'todos' : 'efectivo')}
@@ -159,6 +175,23 @@ export default function PortfolioPage() {
             </div>
             <p className="text-xs font-black text-white truncate">{formatCurrency(totalCuenta)}</p>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setFilterCategory(filterCategory === 'dolares' ? 'todos' : 'dolares')}
+            className={clsx(
+              'p-2.5 rounded-xl border text-left transition-all',
+              filterCategory === 'dolares'
+                ? 'bg-lime-900/40 border-lime-500 shadow-sm'
+                : 'bg-gray-900 border-gray-800 hover:border-gray-700'
+            )}
+          >
+            <div className="flex items-center gap-1.5 text-lime-400 text-xs font-bold mb-1">
+              <DollarSign size={14} />
+              <span>Dólares</span>
+            </div>
+            <p className="text-xs font-black text-white truncate">{formatUSD(totalDolares)}</p>
+          </button>
         </div>
 
         {filterCategory !== 'todos' && (
@@ -179,7 +212,7 @@ export default function PortfolioPage() {
         {filteredList.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 mt-16">
             <p className="text-lg font-medium">No hay registros en cartera</p>
-            <p className="text-sm mt-1">Toca el botón + para cargar efectivo, cheques o saldo en cuenta</p>
+            <p className="text-sm mt-1 text-center">Toca el botón + para cargar efectivo, cheques, saldo en cuenta o dólares</p>
           </div>
         ) : (
           <DragDropContext onDragEnd={onDragEnd}>
@@ -190,6 +223,7 @@ export default function PortfolioPage() {
                     const isExpanded = expandedId === item.id;
                     const meta = CATEGORY_META[item.category] || CATEGORY_META.efectivo;
                     const Icon = meta.Icon;
+                    const isUSD = item.category === 'dolares';
 
                     return (
                       <Draggable
@@ -237,8 +271,13 @@ export default function PortfolioPage() {
                               </div>
 
                               <div className="flex items-center space-x-2.5 shrink-0">
-                                <span className="text-sm font-bold text-emerald-400">
-                                  {formatCurrency(item.amount)}
+                                <span
+                                  className={clsx(
+                                    'text-sm font-bold',
+                                    isUSD ? 'text-lime-400' : 'text-emerald-400'
+                                  )}
+                                >
+                                  {isUSD ? formatUSD(item.amount) : formatCurrency(item.amount)}
                                 </span>
                                 {isExpanded ? (
                                   <ChevronUp size={16} className="text-gray-500" />

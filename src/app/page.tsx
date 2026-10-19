@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { useFinance } from '@/contexts/FinanceContext';
-import { formatCurrency } from '@/utils/formatters';
+import { formatCurrency, formatUSD } from '@/utils/formatters';
 import { Wallet, CreditCard, Banknote, ChevronRight, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 
 import Image from 'next/image';
 
 export default function DashboardScreen() {
-  const { netBalance, totalReceivables, totalDebt, totalPortfolio, currentUser, logout } = useFinance();
+  const { netBalance, totalReceivables, totalDebt, totalPortfolio, totalPortfolioUSD, currentUser, logout } = useFinance();
 
   return (
     <div className="flex-1 w-full max-w-md mx-auto bg-gray-950 min-h-screen relative shadow-sm flex flex-col">
@@ -59,11 +59,18 @@ export default function DashboardScreen() {
               <div className="p-3 bg-emerald-500/20 rounded-full shadow-inner mr-4">
                 <Banknote className="text-emerald-400" size={24} />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <h2 className="text-sm font-bold text-gray-300 tracking-wide">En Cartera</h2>
-                <p className="text-2xl font-black text-emerald-400 mt-1">{formatCurrency(totalPortfolio)}</p>
+                <div className="flex flex-wrap items-baseline gap-2 mt-1">
+                  <p className="text-2xl font-black text-emerald-400">{formatCurrency(totalPortfolio)}</p>
+                  {totalPortfolioUSD > 0 && (
+                    <span className="text-xs font-black text-lime-300 bg-lime-950/70 border border-lime-700/60 px-2 py-0.5 rounded-lg">
+                      + {formatUSD(totalPortfolioUSD)}
+                    </span>
+                  )}
+                </div>
               </div>
-              <ChevronRight className="text-gray-600" />
+              <ChevronRight className="text-gray-600 shrink-0" />
             </div>
           </Link>
 
@@ -96,7 +103,7 @@ export default function DashboardScreen() {
       </main>
 
       <footer className="mt-auto py-4 text-center">
-        <span className="text-[11px] font-medium text-gray-600">MiCartera v0.3.3</span>
+        <span className="text-[11px] font-medium text-gray-600">MiCartera v0.3.4</span>
       </footer>
     </div>
   );

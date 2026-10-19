@@ -50,6 +50,7 @@ interface FinanceContextType {
   totalDebt: number;
   totalReceivables: number;
   totalPortfolio: number;
+  totalPortfolioUSD: number;
   netBalance: number;
   addDebt: (
     debt: Omit<Debt, 'id' | 'payments' | 'createdAt' | 'remainingAmount' | 'isPaid' | 'orderIndex'>
@@ -270,7 +271,12 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   const totalReceivables = receivables
     .filter((r) => !r.isPaid)
     .reduce((sum, r) => sum + (r.amount || 0), 0);
-  const totalPortfolio = portfolio.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const totalPortfolio = portfolio
+    .filter((item) => item.category !== 'dolares')
+    .reduce((sum, item) => sum + (item.amount || 0), 0);
+  const totalPortfolioUSD = portfolio
+    .filter((item) => item.category === 'dolares')
+    .reduce((sum, item) => sum + (item.amount || 0), 0);
   const netBalance = totalReceivables - totalDebt;
 
   // Auth Methods
@@ -816,6 +822,7 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
         totalDebt,
         totalReceivables,
         totalPortfolio,
+        totalPortfolioUSD,
         netBalance,
         addDebt,
         updateDebt,

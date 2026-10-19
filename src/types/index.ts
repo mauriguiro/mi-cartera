@@ -40,7 +40,7 @@ export interface Receivable {
   orderIndex: number;
 }
 
-export type PortfolioCategory = 'efectivo' | 'cheque' | 'cuenta';
+export type PortfolioCategory = 'efectivo' | 'cheque' | 'cuenta' | 'dolares';
 
 export interface PortfolioItem {
   id: string;
