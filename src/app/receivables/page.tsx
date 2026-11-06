@@ -5,9 +5,8 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { formatCurrency } from '@/utils/formatters';
 import Link from 'next/link';
-import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit, GripVertical, ArrowUpDown } from 'lucide-react';
+import { ArrowLeft, Plus, ChevronDown, ChevronUp, Trash2, Edit, GripVertical, ArrowUpDown, Coins, StickyNote } from 'lucide-react';
 import { format } from 'date-fns';
-import { Receivable } from '@/types';
 import clsx from 'clsx';
 
 export default function ReceivablesPage() {
@@ -65,6 +64,12 @@ export default function ReceivablesPage() {
                 <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-1">
                   {receivables.map((rec, index) => {
                     const isExpanded = expandedId === rec.id;
+                    const payments = Array.isArray(rec.payments) ? rec.payments : [];
+                    const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                    const origAmount = rec.originalAmount !== undefined ? rec.originalAmount : rec.amount;
+                    const remainingAmount = rec.remainingAmount !== undefined ? rec.remainingAmount : Math.max(0, origAmount - totalPaid);
+                    let runningBalance = origAmount;
+
                     return (
                       <Draggable key={rec.id} draggableId={rec.id} index={index} isDragDisabled={!isReordering}>
                         {(provided) => (
@@ -88,13 +93,20 @@ export default function ReceivablesPage() {
                                     <GripVertical size={16} />
                                   </div>
                                 )}
-                                <span className={clsx("text-sm font-bold truncate", rec.isPaid && "line-through text-gray-400")}>
-                                  {rec.debtor}
-                                </span>
+                                <div className="truncate">
+                                  <span className={clsx("text-sm font-bold truncate block", rec.isPaid && "line-through text-gray-400")}>
+                                    {rec.debtor}
+                                  </span>
+                                  {payments.length > 0 && !rec.isPaid && (
+                                    <span className="text-[11px] text-gray-400 block truncate">
+                                      Orig: {formatCurrency(origAmount)} · {payments.length} {payments.length === 1 ? 'entrega' : 'entregas'}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center space-x-3">
+                              <div className="flex items-center space-x-3 shrink-0">
                                 <span className={clsx("text-sm font-bold", rec.isPaid ? "text-gray-400" : "text-blue-400")}>
-                                  {formatCurrency(rec.amount)}
+                                  {formatCurrency(rec.isPaid ? 0 : remainingAmount)}
                                 </span>
                                 <input
                                   type="checkbox"
@@ -110,13 +122,75 @@ export default function ReceivablesPage() {
                             {isExpanded && (
                               <div className="p-4 bg-gray-950 border-t border-gray-800 text-sm">
                                 <p className="text-gray-300 mb-1"><strong>Concepto:</strong> {rec.concept}</p>
-                                <p className="text-gray-300 mb-3"><strong>Creado el:</strong> {format(new Date(rec.createdAt), 'dd/MM/yyyy')}</p>
+                                <p className="text-gray-300 mb-1"><strong>Monto Original:</strong> {formatCurrency(origAmount)}</p>
                                 
-                                <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-gray-700">
-                                  <Link href={`/receivables/edit/${rec.id}`} className="text-orange-400 p-1 hover:bg-orange-900/30 rounded">
+                                {payments.length > 0 && (
+                                  <>
+                                    <p className="text-gray-300 mb-1">
+                                      <strong>Total Cobrado:</strong>{' '}
+                                      <span className="text-green-400 font-bold">{formatCurrency(totalPaid)}</span>
+                                    </p>
+                                    <p className="text-gray-300 mb-1">
+                                      <strong>Saldo Restante:</strong>{' '}
+                                      <span className={clsx("font-bold", rec.isPaid ? "text-gray-400" : "text-blue-400")}>
+                                        {formatCurrency(rec.isPaid ? 0 : remainingAmount)}
+                                      </span>
+                                    </p>
+                                  </>
+                                )}
+
+                                <p className="text-gray-300 mb-2"><strong>Creado el:</strong> {format(new Date(rec.createdAt), 'dd/MM/yyyy')}</p>
+                                {rec.dueDate && (
+                                  <p className="text-gray-300 mb-2"><strong>Vencimiento:</strong> {format(new Date(rec.dueDate), 'dd/MM/yyyy')}</p>
+                                )}
+
+                                {payments.length > 0 && (
+                                  <>
+                                    <div className="h-px bg-gray-700 my-3" />
+                                    <p className="font-bold mb-2 text-white">Historial de Entregas ({payments.length}):</p>
+                                    <ul className="space-y-1.5">
+                                      {payments.map((p, idx) => {
+                                        runningBalance = Math.max(0, runningBalance - (Number(p.amount) || 0));
+                                        return (
+                                          <li key={p.id} className="text-xs bg-gray-900 px-2.5 py-2 rounded border border-gray-800 space-y-1">
+                                            <div className="flex justify-between items-center">
+                                              <div>
+                                                <span className="font-semibold text-gray-300">#{idx + 1}</span>{' '}
+                                                <span className="text-gray-400">
+                                                  {p.date ? format(new Date(p.date), 'dd/MM/yyyy') : '-'}
+                                                </span>
+                                              </div>
+                                              <div className="text-right">
+                                                <span className="text-green-400 font-bold">+{formatCurrency(p.amount)}</span>
+                                                <span className="text-gray-500 ml-2">(Resta: {formatCurrency(runningBalance)})</span>
+                                              </div>
+                                            </div>
+                                            {p.note && (
+                                              <div className="text-[11px] text-gray-300 bg-gray-950/80 px-2 py-1 rounded border border-gray-850 flex items-start gap-1">
+                                                <StickyNote size={12} className="text-blue-400 shrink-0 mt-0.5" />
+                                                <span className="italic break-words">{p.note}</span>
+                                              </div>
+                                            )}
+                                          </li>
+                                        );
+                                      })}
+                                    </ul>
+                                  </>
+                                )}
+                                
+                                <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-gray-700">
+                                  {!rec.isPaid && (
+                                    <Link
+                                      href={`/receivables/edit/${rec.id}?action=pay`}
+                                      className="flex items-center text-blue-400 text-xs font-bold px-2.5 py-1 bg-blue-900/30 hover:bg-blue-900/50 rounded transition-colors"
+                                    >
+                                      <Coins size={14} className="mr-1" /> Pago Parcial
+                                    </Link>
+                                  )}
+                                  <Link href={`/receivables/edit/${rec.id}`} className="text-orange-400 p-1 hover:bg-orange-900/30 rounded" title="Editar cobro">
                                     <Edit size={16} />
                                   </Link>
-                                  <button onClick={() => deleteReceivable(rec.id)} className="text-red-400 p-1 hover:bg-red-900/30 rounded">
+                                  <button onClick={() => deleteReceivable(rec.id)} className="text-red-400 p-1 hover:bg-red-900/30 rounded" title="Eliminar cobro">
                                     <Trash2 size={16} />
                                   </button>
                                 </div>

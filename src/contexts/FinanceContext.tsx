@@ -60,9 +60,17 @@ interface FinanceContextType {
   payDebt: (id: string, amount: number) => void;
   deleteDebt: (id: string) => void;
   reorderDebts: (sourceIndex: number, destinationIndex: number, list: Debt[]) => void;
-  addReceivable: (receivable: Omit<Receivable, 'id' | 'createdAt' | 'isPaid' | 'orderIndex'>) => void;
+  addReceivable: (
+    receivable: Omit<Receivable, 'id' | 'createdAt' | 'isPaid' | 'orderIndex' | 'originalAmount' | 'remainingAmount' | 'payments'> & {
+      originalAmount?: number;
+      remainingAmount?: number;
+      payments?: Payment[];
+    }
+  ) => void;
   updateReceivable: (id: string, updates: Partial<Receivable>) => void;
   markReceivableAsPaid: (id: string, paid: boolean) => void;
+  payReceivable: (id: string, amount: number, date?: string, note?: string) => void;
+  deleteReceivablePayment: (receivableId: string, paymentId: string) => void;
   deleteReceivable: (id: string) => void;
   reorderReceivables: (sourceIndex: number, destinationIndex: number, list: Receivable[]) => void;
   addPortfolioItem: (item: Omit<PortfolioItem, 'id' | 'createdAt' | 'orderIndex'>) => void;
@@ -197,12 +205,34 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
       collection(db, 'receivables'),
       (snapshot) => {
         const data = snapshot.docs.map((docSnap) => {
-          const raw = { id: docSnap.id, ...docSnap.data() } as Receivable;
+          const raw = { id: docSnap.id, ...docSnap.data() } as any;
+          const payments: Payment[] = Array.isArray(raw.payments) ? raw.payments : [];
+          const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+          const originalAmount =
+            raw.originalAmount !== undefined
+              ? Number(raw.originalAmount)
+              : (Number(raw.amount) || 0);
+
+          let remainingAmount =
+            raw.remainingAmount !== undefined
+              ? Number(raw.remainingAmount)
+              : Math.max(0, originalAmount - totalPaid);
+
+          if (payments.length > 0) {
+            remainingAmount = Math.max(0, originalAmount - totalPaid);
+          }
+
+          const isPaid = raw.isPaid ?? (remainingAmount === 0 && originalAmount > 0);
+
           return {
             ...raw,
-            amount: Number(raw.amount) || 0,
-            isPaid: raw.isPaid ?? false,
-          };
+            originalAmount,
+            remainingAmount,
+            amount: remainingAmount,
+            payments,
+            isPaid,
+          } as Receivable;
         });
         data.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
         setAllReceivables(data);
@@ -733,24 +763,123 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   // Receivables Methods
-  const addReceivable = (data: Omit<Receivable, 'id' | 'createdAt' | 'isPaid' | 'orderIndex'>) => {
+  const addReceivable = (
+    data: Omit<Receivable, 'id' | 'createdAt' | 'isPaid' | 'orderIndex' | 'originalAmount' | 'remainingAmount' | 'payments'> & {
+      originalAmount?: number;
+      remainingAmount?: number;
+      payments?: Payment[];
+    }
+  ) => {
     if (!currentUser) return;
+    const numAmount = Number(data.amount) || 0;
+    const originalAmount = data.originalAmount !== undefined ? Number(data.originalAmount) : numAmount;
+    const payments = Array.isArray(data.payments) ? data.payments : [];
+    const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const remainingAmount = data.remainingAmount !== undefined ? Number(data.remainingAmount) : Math.max(0, originalAmount - totalPaid);
+
     const newRec: Receivable = {
       ...data,
       id: uuidv4(),
       userId: currentUser.username,
       createdAt: new Date().toISOString(),
-      isPaid: false,
+      originalAmount,
+      remainingAmount,
+      amount: remainingAmount,
+      payments,
+      isPaid: remainingAmount === 0 && originalAmount > 0,
       orderIndex: receivables.length,
     };
     setDoc(doc(db, 'receivables', newRec.id), newRec);
   };
 
-  const updateReceivable = (id: string, updates: Partial<Receivable>) =>
-    updateDoc(doc(db, 'receivables', id), updates);
+  const updateReceivable = (id: string, updates: Partial<Receivable>) => {
+    const rec = receivables.find((r) => r.id === id);
+    if (rec) {
+      const originalAmount =
+        updates.originalAmount !== undefined
+          ? Number(updates.originalAmount)
+          : (updates.amount !== undefined ? Number(updates.amount) : rec.originalAmount);
 
-  const markReceivableAsPaid = (id: string, paid: boolean) =>
-    updateDoc(doc(db, 'receivables', id), { isPaid: paid });
+      const payments = Array.isArray(updates.payments) ? updates.payments : rec.payments || [];
+      const totalPaid = payments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const remainingAmount =
+        updates.remainingAmount !== undefined
+          ? Number(updates.remainingAmount)
+          : Math.max(0, originalAmount - totalPaid);
+
+      const isPaid =
+        updates.isPaid !== undefined
+          ? updates.isPaid
+          : (remainingAmount === 0 && originalAmount > 0);
+
+      const finalUpdates: Partial<Receivable> = {
+        ...updates,
+        originalAmount,
+        remainingAmount,
+        amount: remainingAmount,
+        payments,
+        isPaid,
+      };
+      updateDoc(doc(db, 'receivables', id), finalUpdates);
+    } else {
+      updateDoc(doc(db, 'receivables', id), updates);
+    }
+  };
+
+  const payReceivable = (id: string, amount: number, date?: string, note?: string) => {
+    const rec = receivables.find((r) => r.id === id);
+    if (rec) {
+      const newPayment: Payment = {
+        id: uuidv4(),
+        amount,
+        date: date || new Date().toISOString(),
+        note: note ? note.trim() : '',
+      };
+      const updatedPayments = [...(rec.payments || []), newPayment];
+      const totalPaid = updatedPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const remainingAmount = Math.max(0, rec.originalAmount - totalPaid);
+      const isPaid = remainingAmount === 0;
+
+      updateDoc(doc(db, 'receivables', id), {
+        payments: updatedPayments,
+        remainingAmount,
+        amount: remainingAmount,
+        isPaid,
+      });
+    }
+  };
+
+  const deleteReceivablePayment = (receivableId: string, paymentId: string) => {
+    const rec = receivables.find((r) => r.id === receivableId);
+    if (rec && rec.payments) {
+      const updatedPayments = rec.payments.filter((p) => p.id !== paymentId);
+      const totalPaid = updatedPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const remainingAmount = Math.max(0, rec.originalAmount - totalPaid);
+      const isPaid = remainingAmount === 0 && rec.originalAmount > 0;
+
+      updateDoc(doc(db, 'receivables', receivableId), {
+        payments: updatedPayments,
+        remainingAmount,
+        amount: remainingAmount,
+        isPaid,
+      });
+    }
+  };
+
+  const markReceivableAsPaid = (id: string, paid: boolean) => {
+    const rec = receivables.find((r) => r.id === id);
+    if (rec) {
+      const totalPaid = (rec.payments || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+      const rest = Math.max(0, rec.originalAmount - totalPaid);
+      updateDoc(doc(db, 'receivables', id), {
+        isPaid: paid,
+        remainingAmount: paid ? 0 : rest,
+        amount: paid ? 0 : rest,
+      });
+    } else {
+      updateDoc(doc(db, 'receivables', id), { isPaid: paid });
+    }
+  };
 
   const deleteReceivable = (id: string) => deleteDoc(doc(db, 'receivables', id));
 
@@ -833,6 +962,8 @@ export const FinanceProvider = ({ children }: { children: React.ReactNode }) => 
         addReceivable,
         updateReceivable,
         markReceivableAsPaid,
+        payReceivable,
+        deleteReceivablePayment,
         deleteReceivable,
         reorderReceivables,
         addPortfolioItem,

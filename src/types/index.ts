@@ -11,6 +11,7 @@ export interface Payment {
   id: string;
   amount: number;
   date: string;
+  note?: string;
 }
 
 export interface Debt {
@@ -33,9 +34,12 @@ export interface Receivable {
   userId?: string;
   debtor: string;
   amount: number;
+  originalAmount: number;
+  remainingAmount: number;
   concept: string;
   dueDate: string;
   createdAt: string;
+  payments: Payment[];
   isPaid: boolean;
   orderIndex: number;
 }
